@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
-from scanner import get_folders
+from scanner import get_folders, clean_folder_name
+from tmdb import search_tmdb
 
 parser = argparse.ArgumentParser(description='Scan local media and enrich metadata from TMDB')
 parser.add_argument('--movies', help='Path to the movies folder')
@@ -24,6 +25,15 @@ if tv and (not Path(tv).is_dir()):
 if movies:
     movie_folders = get_folders(movies)    
     print(f"Movies: {len(movie_folders)} folders")
+    # print(movie_folders[0])
+    clean_folder = clean_folder_name(movie_folders[0].name)
+    # print(f"Title: {clean_folder['title']}")
+    # print(f"Year: {clean_folder['year']}")
+    data = search_tmdb(title=clean_folder['title'], year=clean_folder['year'], media_type='movie')
+    results = data['results']
+    print(results[0])
+    print(f"Title: {results[0]['title']}")
+    print(f"ID: {results[0]['id']}")
 
 if tv:
     tv_folders = get_folders(tv)
