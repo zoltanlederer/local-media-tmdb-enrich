@@ -38,7 +38,13 @@ def clean_folder_name(folder_name):
         title = folder
         year = None
 
-    quality_markers = re.search(r'1080p|720p|480p|2160p|4K|3D', title) # find quality markers like 1080p — everything from this point onwards is junk
+    # find quality markers like 1080p — everything from this point onwards is junk
+    quality_markers = re.search(
+        r'\b(1080p|720p|480p|2160p|4K|3D|S\d{2}|WEBRip|WEB-DL|BDRip|DVDRip|DVBRip|XviD|COMPLETE)\b',
+        title,
+        re.IGNORECASE
+    ) 
+    
     if quality_markers:
         title = title[:quality_markers.start()] # keep the string from the beginning until the first index of the quality marker
 
