@@ -11,6 +11,19 @@ from pathlib import Path
 from scanner import get_folders, clean_folder_name
 from tmdb import search_tmdb
 
+def search_with_retry(title, year, media_type):
+    """Search TMDB with the year, and retry once without it if nothing was found."""
+    results = search_tmdb(title=title, year=year, media_type=media_type)
+    time.sleep(0.25)  # stay well under TMDB's rate limit
+
+    # The year in a folder name is sometimes wrong, so retry once without it.
+    # The 'is not None' check comes first, so len() never runs on a failed request.
+    if results is not None and len(results['results']) == 0:
+        results = search_tmdb(title=title, year=None, media_type=media_type)
+        time.sleep(0.25)
+    
+    return results
+    
 
 def match_folders(folders, media_type):
     """Search TMDB for each folder and sort the results into matched and unmatched lists.
@@ -27,14 +40,8 @@ def match_folders(folders, media_type):
         clean_folder = clean_folder_name(folder.name)
         # macOS can store accented letters differently from what TMDB expects; NFC makes them consistent
         title = unicodedata.normalize('NFC', clean_folder['title'])
-        results = search_tmdb(title=title, year=clean_folder['year'], media_type=media_type)
-        time.sleep(0.25)  # stay well under TMDB's rate limit
 
-        # The year in a folder name is sometimes wrong, so retry once without it.
-        # The 'is not None' check comes first, so len() never runs on a failed request.
-        if results is not None and len(results['results']) == 0:
-            results = search_tmdb(title=title, year=None, media_type=media_type)
-            time.sleep(0.25)
+        results = search_with_retry(title, clean_folder['year'], media_type)
 
         # Decide once, based on the final result, so every folder lands in exactly one list
         if results is None:
