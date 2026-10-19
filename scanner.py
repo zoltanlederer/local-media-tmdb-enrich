@@ -44,7 +44,7 @@ def clean_folder_name(folder_name):
         title,
         re.IGNORECASE
     ) 
-    
+
     if quality_markers:
         title = title[:quality_markers.start()] # keep the string from the beginning until the first index of the quality marker
 
@@ -53,3 +53,43 @@ def clean_folder_name(folder_name):
     title = title.strip() # strip any remaining whitespace
 
     return {'title': title, 'year': year}
+
+
+def has_hungarian_letters(text):
+    """Return True if the text contains Hungarian accented letters."""
+    for char in text.lower():
+        if char in 'áéíóöőúüű':
+            return True
+    return False
+
+def candidate_titles(title):
+    """Split a cleaned title into possible search titles, using brackets and ' - ' as separators."""
+    # Step 1: split off the bracket text, if there is any
+    match = re.search(r'\(([^)]*)\)?', title)
+    if match:
+        parts = [title[:match.start()], match.group(1)]  # outside and inside
+    else:
+        parts = [title]
+
+    # Step 2: split every part on ' - ' (with spaces, so 'Hawaii Five-0' stays whole)
+    candidates = []
+    for part in parts:
+        for piece in part.split(' - '):
+            piece = piece.strip()
+            if piece:  # skip empty strings, e.g. when a title starts with '('
+                candidates.append(piece)
+
+    return sorted(candidates, key=has_hungarian_letters)
+
+
+if __name__ == '__main__':
+    tests = [
+        "Ausztrál kamionosok (Outback Truckers",
+        "Világunk történelme - Andrew Marr's History of the World",
+        "Friends (Extended, Exclusive & Unseen",
+        "Hawaii Five-0",
+        "Columbo",
+    ]
+    for t in tests:
+        print(t, '→', candidate_titles(t))
+
