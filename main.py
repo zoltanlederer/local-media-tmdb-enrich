@@ -7,9 +7,25 @@ and (in later steps) enriches every title with full TMDB metadata.
 import argparse
 import time
 import unicodedata
+import re
 from pathlib import Path
 from scanner import get_folders, clean_folder_name
 from tmdb import search_tmdb
+
+def normalize(text):
+    """Lowercase the text, remove punctuation, and strip spaces at the ends."""
+    return re.sub(r'[^\w\s]', '', text).lower().strip()
+
+
+def is_exact_match(candidate, result):
+    """Return True if any of the result's titles equals the candidate, ignoring case and punctuation."""
+    target = normalize(candidate) # normalise once, not four times
+    for field in ('title', 'riginal_title', 'name', 'original_name'):
+        value = result.get(field) # None if this result doesn't have the field
+        if value and normalize(value) == target:
+            return True
+    return False
+
 
 def search_with_retry(title, year, media_type):
     """Search TMDB with the year, and retry once without it if nothing was found."""
