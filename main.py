@@ -9,7 +9,7 @@ import time
 import unicodedata
 import re
 from pathlib import Path
-from scanner import get_folders, clean_folder_name
+from scanner import get_folders, clean_folder_name, candidate_titles
 from tmdb import search_tmdb
 
 def normalize(text):
@@ -76,6 +76,8 @@ def find_best_match(candidates, year, media_type):
 def match_folders(folders, media_type):
     """Search TMDB for each folder and sort the results into matched and unmatched lists.
 
+    Each folder name can produce several candidate titles (e.g. a Hungarian and an
+    English title); find_best_match() tries them and prefers an exact title match.
     Every folder ends up in exactly one of the two lists, so no title is lost silently.
     Unmatched entries keep a 'reason' so the user knows what to fix.
     """
@@ -89,30 +91,24 @@ def match_folders(folders, media_type):
         # macOS can store accented letters differently from what TMDB expects; NFC makes them consistent
         title = unicodedata.normalize('NFC', clean_folder['title'])
 
-        results = search_with_retry(title, clean_folder['year'], media_type)
+        # Folder names often hold two titles, so try each one, English-looking first
+        candidates = candidate_titles(title)
+        # All the search decisions (retry, exact match, fallback) live in find_best_match()
+        result, reason = find_best_match(candidates, clean_folder['year'], media_type)
 
-        # Decide once, based on the final result, so every folder lands in exactly one list
-        if results is None:
+        # result is None only when no candidate found anything; reason says why
+        if result is None:
             unmatched.append({
                 'title': title,  # the cleaned title shows the user what was actually searched
                 'year': clean_folder['year'],
                 'source_folder': folder.name,
                 'media_type': media_type,
-                'reason': 'fetch_failed'
-            })
-        elif len(results['results']) == 0:
-            unmatched.append({
-                'title': title,
-                'year': clean_folder['year'],
-                'source_folder': folder.name,
-                'media_type': media_type,
-                'reason': 'no_match'
+                'reason': reason  # 'no_match' or 'fetch_failed', decided by find_best_match()
             })
         else:
-            first = results['results'][0]  # TMDB sorts by relevance, so the first result is the best guess
             matched.append({
-                'title': first.get('title') or first.get('name'),  # movies use 'title', TV shows use 'name'
-                'tmdb_id': first['id'],
+                'title': result.get('title') or result.get('name'),  # movies use 'title', TV shows use 'name'
+                'tmdb_id': result['id'],
                 'source_folder': folder.name,  # the original name, so the user can find the folder on disk
                 'media_type': media_type
             })
