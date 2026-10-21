@@ -20,7 +20,7 @@ def normalize(text):
 def is_exact_match(candidate, result):
     """Return True if any of the result's titles equals the candidate, ignoring case and punctuation."""
     target = normalize(candidate) # normalise once, not four times
-    for field in ('title', 'riginal_title', 'name', 'original_name'):
+    for field in ('title', 'original_title', 'name', 'original_name'):
         value = result.get(field) # None if this result doesn't have the field
         if value and normalize(value) == target:
             return True
@@ -39,7 +39,39 @@ def search_with_retry(title, year, media_type):
         time.sleep(0.25)
     
     return results
-    
+
+
+def find_best_match(candidates, year, media_type):
+    """Try each candidate title and return (result, reason).
+
+    An exact title match wins immediately. Otherwise the first result of the
+    first candidate that found anything is used as a fallback.
+    """
+    fallback = None
+    request_failed = False
+
+    for candidate in candidates:
+        response = search_with_retry(candidate, year, media_type)
+
+        if response is None:
+            request_failed = True # remember it, but other candidates may still work
+            continue
+
+       # Check every result, not just the first: the exact one may be further down
+        for result in response['results']:
+            if is_exact_match(candidate, result):
+                return result, None
+
+        # No exact match: keep the first result of the first candidate that found anything
+        if fallback is None and response['results']:
+            fallback = response['results'][0]
+
+    if fallback:
+        return fallback, None
+    if request_failed:
+        return None, 'fetch_failed'
+    return None, 'no_match'
+
 
 def match_folders(folders, media_type):
     """Search TMDB for each folder and sort the results into matched and unmatched lists.
