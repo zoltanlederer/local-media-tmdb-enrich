@@ -83,6 +83,7 @@ def match_folders(folders, media_type):
     """
     matched = []
     unmatched = []
+    seen = set()  # (media_type, tmdb_id) pairs already matched, to catch duplicate folders
 
     total = len(folders)
     for i, folder in enumerate(folders, start=1):
@@ -106,12 +107,24 @@ def match_folders(folders, media_type):
                 'reason': reason  # 'no_match' or 'fetch_failed', decided by find_best_match()
             })
         else:
-            matched.append({
-                'title': result.get('title') or result.get('name'),  # movies use 'title', TV shows use 'name'
-                'tmdb_id': result['id'],
-                'source_folder': folder.name,  # the original name, so the user can find the folder on disk
-                'media_type': media_type
-            })
+            key = (media_type, result['id'])
+            if key in seen:
+                # Same title already matched from another folder: report it instead of dropping it
+                unmatched.append({
+                    'title': title,
+                    'year': clean_folder['year'],
+                    'source_folder': folder.name,
+                    'media_type': media_type,
+                    'reason': 'duplicate'
+                })
+            else:
+                seen.add(key)
+                matched.append({
+                    'title': result.get('title') or result.get('name'),  # movies use 'title', TV shows use 'name'
+                    'tmdb_id': result['id'],
+                    'source_folder': folder.name,  # the original name, so the user can find the folder on disk
+                    'media_type': media_type
+                })
 
     return matched, unmatched
 
