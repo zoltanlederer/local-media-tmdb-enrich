@@ -172,8 +172,8 @@ if tv:
     tv_matched, tv_unmatched = match_folders(tv_folders, 'tv')
     # print('TV MATCHED:', tv_matched)
     # print('TV UNMATCHED:', tv_unmatched)
-    print('TV MATCHED:', tv_matched[0])
+    print('TV MATCHED:', tv_matched[10])
 
-    details = fetch_details(tv_matched[3]['tmdb_id'], 'tv')
+    details = fetch_details(tv_matched[10]['tmdb_id'], 'tv')
     with open('sample_tv.json', 'w', encoding='utf-8') as f:
         json.dump(details, f, indent=2, ensure_ascii=False)
