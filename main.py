@@ -8,9 +8,10 @@ import argparse
 import time
 import unicodedata
 import re
+import json
 from pathlib import Path
 from scanner import get_folders, clean_folder_name, candidate_titles
-from tmdb import search_tmdb
+from tmdb import search_tmdb, fetch_details
 
 def normalize(text):
     """Lowercase the text, remove punctuation, and strip spaces at the ends."""
@@ -157,12 +158,22 @@ if movies:
     movie_folders = get_folders(movies)
     print(f"Movies: {len(movie_folders)} folders")
     movie_matched, movie_unmatched = match_folders(movie_folders, 'movie')
-    print('MOVIE MATCHED:', movie_matched)
-    print('MOVIE UNMATCHED:', movie_unmatched)
+    # print('MOVIE MATCHED:', movie_matched)
+    # print('MOVIE UNMATCHED:', movie_unmatched)
+    print('MOVIE MATCHED:', movie_matched[0])
+    
+    details = fetch_details(movie_matched[0]['tmdb_id'], 'movie')
+    with open('sample_movie.json', 'w', encoding='utf-8') as f:
+        json.dump(details, f, indent=2, ensure_ascii=False)
 
 if tv:
     tv_folders = get_folders(tv)
     print(f"TV shows: {len(tv_folders)} folders")
     tv_matched, tv_unmatched = match_folders(tv_folders, 'tv')
-    print('TV MATCHED:', tv_matched)
-    print('TV UNMATCHED:', tv_unmatched)
+    # print('TV MATCHED:', tv_matched)
+    # print('TV UNMATCHED:', tv_unmatched)
+    print('TV MATCHED:', tv_matched[0])
+
+    details = fetch_details(tv_matched[3]['tmdb_id'], 'tv')
+    with open('sample_tv.json', 'w', encoding='utf-8') as f:
+        json.dump(details, f, indent=2, ensure_ascii=False)
