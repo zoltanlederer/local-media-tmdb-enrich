@@ -226,3 +226,4 @@ exports/
 test_data/
 test_data_movie/
 test_data_tv/
+sample_*.json
