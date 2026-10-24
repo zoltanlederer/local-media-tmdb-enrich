@@ -11,7 +11,7 @@ import re
 import json
 from pathlib import Path
 from scanner import get_folders, clean_folder_name, candidate_titles
-from tmdb import search_tmdb, fetch_details
+from tmdb import search_tmdb, fetch_details, fetch_seasons
 
 def normalize(text):
     """Lowercase the text, remove punctuation, and strip spaces at the ends."""
@@ -58,7 +58,7 @@ def find_best_match(candidates, year, media_type):
             request_failed = True # remember it, but other candidates may still work
             continue
 
-       # Check every result, not just the first: the exact one may be further down
+        # Check every result, not just the first: the exact one may be further down
         for result in response['results']:
             if is_exact_match(candidate, result):
                 return result, None
@@ -72,6 +72,46 @@ def find_best_match(candidates, year, media_type):
     if request_failed:
         return None, 'fetch_failed'
     return None, 'no_match'
+
+
+def get_details(tmdb_id, media_type):
+    """Return the full TMDB data for a title, from the cache if possible.
+
+    Only fetches from TMDB when the title isn't cached yet. TV shows also get
+    their seasons in English and Hungarian. Nothing is saved if any request fails,
+    so a failed title is simply fetched again on the next run.
+    """
+    cache_file = Path('cache') / media_type / f'{tmdb_id}.json'
+
+    # 1. Already cached: load it and return it, no requests at all
+    if cache_file.exists():
+        with open(cache_file, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+        return data
+
+    # 2. Fetch the main details
+    details = fetch_details(tmdb_id, media_type)
+    time.sleep(0.25)
+    if details is None:
+        return None
+
+    data = {'details': details}
+
+    # 3. TV shows: also fetch every season, in both languages
+    if media_type == 'tv':
+        season_numbers = [s['season_number'] for s in details['seasons']]
+        seasons_en = fetch_seasons(tmdb_id, season_numbers, 'en-US')
+        seasons_hu = fetch_seasons(tmdb_id, season_numbers, 'hu-HU')
+        if seasons_en is None or seasons_hu is None:
+            return None  # half a show is worse than none
+        data['seasons_en'] = seasons_en
+        data['seasons_hu'] = seasons_hu
+
+    # 4. Everything succeeded: now it's safe to save
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(cache_file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False)
+    return data
 
 
 def match_folders(folders, media_type):
@@ -158,22 +198,8 @@ if movies:
     movie_folders = get_folders(movies)
     print(f"Movies: {len(movie_folders)} folders")
     movie_matched, movie_unmatched = match_folders(movie_folders, 'movie')
-    # print('MOVIE MATCHED:', movie_matched)
-    # print('MOVIE UNMATCHED:', movie_unmatched)
-    print('MOVIE MATCHED:', movie_matched[0])
-    
-    details = fetch_details(movie_matched[0]['tmdb_id'], 'movie')
-    with open('sample_movie.json', 'w', encoding='utf-8') as f:
-        json.dump(details, f, indent=2, ensure_ascii=False)
 
 if tv:
     tv_folders = get_folders(tv)
     print(f"TV shows: {len(tv_folders)} folders")
     tv_matched, tv_unmatched = match_folders(tv_folders, 'tv')
-    # print('TV MATCHED:', tv_matched)
-    # print('TV UNMATCHED:', tv_unmatched)
-    print('TV MATCHED:', tv_matched[10])
-
-    details = fetch_details(tv_matched[10]['tmdb_id'], 'tv')
-    with open('sample_tv.json', 'w', encoding='utf-8') as f:
-        json.dump(details, f, indent=2, ensure_ascii=False)

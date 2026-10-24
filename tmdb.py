@@ -79,9 +79,3 @@ def fetch_seasons(tmdb_id, season_numbers, language):
         time.sleep(0.25)  # a long show makes several requests in a row
 
     return seasons
-
-if __name__ == '__main__':
-    details = fetch_details(456, 'tv')
-    season_numbers = [s['season_number'] for s in details['seasons']]
-    seasons = fetch_seasons(456, season_numbers, 'hu-HU')
-    print(seasons['season/1']['episodes'][0])
