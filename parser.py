@@ -46,8 +46,11 @@ def pick_image(images, language):
     return None
 
 
-def parse_movie(data, source_folder):
-    """Turn one cached movie into a dictionary in the output format."""
+def parse_movie(data, match):
+    """Turn one cached movie into a dictionary in the output format.
+    
+    match is the entry from the matched list, which holds the folder info.
+    """
     details = data['details']
     hu = get_translation(details)
     release_date = empty_to_none(details.get('release_date'))
@@ -56,7 +59,8 @@ def parse_movie(data, source_folder):
         'media_type': 'movie',
         'tmdb_id': details['id'],
         'imdb_id': details.get('imdb_id'),
-        'source_folder': source_folder,
+        'source_folder': match['source_folder'],
+        'source_path': match['source_path'],
         'title': details.get('title'),
         'title_hu': empty_to_none(hu.get('title')),
         'original_title': details.get('original_title'),
@@ -79,5 +83,6 @@ def parse_movie(data, source_folder):
 if __name__ == '__main__':
     with open('cache/movie/51497.json', encoding='utf-8') as f:
         movie = json.load(f)
-    print(json.dumps(parse_movie(movie, 'test_data_movie'), indent=2, ensure_ascii=False))
-    print(parse_movie({'details': {'id': 1}}, 'empty test'))
+    test_match = {'source_folder': 'Fast Five test', 'source_path': '/media/movies/Fast Five test'}
+    print(json.dumps(parse_movie(movie, test_match), indent=2, ensure_ascii=False))
+    print(parse_movie({'details': {'id': 1}}, test_match))

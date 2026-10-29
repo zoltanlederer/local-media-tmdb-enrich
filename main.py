@@ -164,6 +164,7 @@ def match_folders(folders, media_type):
                     'title': result.get('title') or result.get('name'),  # movies use 'title', TV shows use 'name'
                     'tmdb_id': result['id'],
                     'source_folder': folder.name,  # the original name, so the user can find the folder on disk
+                    'source_path': str(folder.resolve()),  # full path, so MediaHome can find the folder on disk
                     'media_type': media_type
                 })
 
