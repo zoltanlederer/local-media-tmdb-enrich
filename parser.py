@@ -46,13 +46,38 @@ def pick_image(images, language):
     return None
 
 
-if __name__ == '__main__':
-    with open('cache/tv/1668.json', encoding='utf-8') as f:
-        data = json.load(f)
-    hu = get_translation(data['details'])
-    print(empty_to_none(hu.get('name')))      # Jóbarátok
-    print(empty_to_none(hu.get('tagline')))   # None (it's "" in TMDB)
+def parse_movie(data, source_folder):
+    """Turn one cached movie into a dictionary in the output format."""
+    details = data['details']
+    hu = get_translation(details)
+    release_date = empty_to_none(details.get('release_date'))
 
-    print(pick_trailer(data['details']))                                   # H29XSxoKp80 (the official 2014 trailer)
-    print(pick_image(data['details']['images']['posters'], 'hu'))          # a Hungarian poster path
-    print(pick_image(data['details']['images']['logos'], 'en'))            # an English logo path
+    return {
+        'media_type': 'movie',
+        'tmdb_id': details['id'],
+        'imdb_id': details.get('imdb_id'),
+        'source_folder': source_folder,
+        'title': details.get('title'),
+        'title_hu': empty_to_none(hu.get('title')),
+        'original_title': details.get('original_title'),
+        'original_language': details.get('original_language'),
+        'overview': empty_to_none(details.get('overview')),
+        'overview_hu': empty_to_none(hu.get('overview')),
+        'tagline': empty_to_none(details.get('tagline')),
+        'tagline_hu': empty_to_none(hu.get('tagline')),
+        'release_date': release_date,
+        'year': int(release_date[:4]) if release_date else None,
+        'runtime': details.get('runtime'),
+        'status': details.get('status'),
+        'genres': [genre['name'] for genre in details.get('genres', [])],
+        'keywords': [keyword['name'] for keyword in details.get('keywords', {}).get('keywords', [])],
+        'vote_average': details.get('vote_average'),
+        'vote_count': details.get('vote_count')
+    }
+
+
+if __name__ == '__main__':
+    with open('cache/movie/51497.json', encoding='utf-8') as f:
+        movie = json.load(f)
+    print(json.dumps(parse_movie(movie, 'test_data_movie'), indent=2, ensure_ascii=False))
+    print(parse_movie({'details': {'id': 1}}, 'empty test'))
