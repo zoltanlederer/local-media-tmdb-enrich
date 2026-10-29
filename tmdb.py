@@ -4,8 +4,8 @@ from config import TMDB_API_KEY, TMDB_BASE_URL
 
 # Extra sections to include in each details request (one request instead of many)
 APPEND = {
-    'movie': 'credits,keywords,videos,translations,images,recommendations,similar',
-    'tv': 'aggregate_credits,keywords,videos,external_ids,translations,images,recommendations,similar',
+    'movie': 'credits,keywords,videos,translations,images,recommendations,similar,release_dates',
+    'tv': 'aggregate_credits,keywords,videos,external_ids,translations,images,recommendations,similar,content_ratings',
 }
 
 def search_tmdb(title, media_type, year=None):
