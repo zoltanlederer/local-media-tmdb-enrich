@@ -54,6 +54,9 @@ def parse_movie(data, match):
     details = data['details']
     hu = get_translation(details)
     release_date = empty_to_none(details.get('release_date'))
+    credits = details.get('credits', {})
+    crew = credits.get('crew', [])
+    cast = credits.get('cast', [])
 
     return {
         'media_type': 'movie',
@@ -76,7 +79,20 @@ def parse_movie(data, match):
         'genres': [genre['name'] for genre in details.get('genres', [])],
         'keywords': [keyword['name'] for keyword in details.get('keywords', {}).get('keywords', [])],
         'vote_average': details.get('vote_average'),
-        'vote_count': details.get('vote_count')
+        'vote_count': details.get('vote_count'),
+        'cast': [
+            {
+                'id': person['id'],
+                'name': person['name'],
+                'character': person.get('character'),
+                'profile_path': person.get('profile_path'),  # None when TMDB has no photo
+            }
+            for person in cast[:10]  # already sorted by billing order
+        ],
+        'directors': [
+            {'id': person['id'], 'name': person['name']}
+            for person in crew if person.get('job') == 'Director'
+        ],
     }
 
 
