@@ -57,6 +57,8 @@ def parse_movie(data, match):
     credits = details.get('credits', {})
     crew = credits.get('crew', [])
     cast = credits.get('cast', [])
+    images = details.get('images', {})
+    collection = details.get('belongs_to_collection') or {}  # null in TMDB → {} so .get() is safe
 
     return {
         'media_type': 'movie',
@@ -93,6 +95,20 @@ def parse_movie(data, match):
             {'id': person['id'], 'name': person['name']}
             for person in crew if person.get('job') == 'Director'
         ],
+        'poster_path': details.get('poster_path'),
+        'poster_path_hu': pick_image(images.get('posters', []), 'hu'),
+        'backdrop_path': details.get('backdrop_path'),
+        'logo_path': pick_image(images.get('logos', []), 'en'),
+        'logo_path_hu': pick_image(images.get('logos', []), 'hu'),
+        'trailer_key': pick_trailer(details),
+        'collection': {
+            'id': collection.get('id'),
+            'name': collection.get('name'),
+            'poster_path': collection.get('poster_path'),
+            'backdrop_path': collection.get('backdrop_path'),
+        } if collection else None,
+        'recommendations': [r['id'] for r in details.get('recommendations', {}).get('results', [])],
+        'similar': [r['id'] for r in details.get('similar', {}).get('results', [])],
     }
 
 
