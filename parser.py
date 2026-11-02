@@ -46,6 +46,36 @@ def pick_image(images, language):
     return None
 
 
+def parse_common(details, match):
+    """Return the fields that movies and TV shows read the same way."""
+    hu = get_translation(details)
+    images = details.get('images', {})
+
+    return {
+        'media_type': None,
+        'tmdb_id': details['id'],
+        'source_folder': match['source_folder'],
+        'source_path': match['source_path'],
+        'original_language': details.get('original_language'),
+        'overview': empty_to_none(details.get('overview')),
+        'overview_hu': empty_to_none(hu.get('overview')),
+        'tagline': empty_to_none(details.get('tagline')),
+        'tagline_hu': empty_to_none(hu.get('tagline')),
+        'status': details.get('status'),
+        'genres': [genre['name'] for genre in details.get('genres', [])],
+        'vote_average': details.get('vote_average'),
+        'vote_count': details.get('vote_count'),
+        'poster_path': details.get('poster_path'),
+        'poster_path_hu': pick_image(images.get('posters', []), 'hu'),
+        'backdrop_path': details.get('backdrop_path'),
+        'logo_path': pick_image(images.get('logos', []), 'en'),
+        'logo_path_hu': pick_image(images.get('logos', []), 'hu'),
+        'trailer_key': pick_trailer(details),
+        'recommendations': [r['id'] for r in details.get('recommendations', {}).get('results', [])],
+        'similar': [r['id'] for r in details.get('similar', {}).get('results', [])],
+    }
+
+
 def parse_movie(data, match):
     """Turn one cached movie into a dictionary in the output format.
     
@@ -57,31 +87,18 @@ def parse_movie(data, match):
     credits = details.get('credits', {})
     crew = credits.get('crew', [])
     cast = credits.get('cast', [])
-    images = details.get('images', {})
     collection = details.get('belongs_to_collection') or {}  # null in TMDB → {} so .get() is safe
 
-    return {
+    return parse_common(details, match) | {
         'media_type': 'movie',
-        'tmdb_id': details['id'],
         'imdb_id': details.get('imdb_id'),
-        'source_folder': match['source_folder'],
-        'source_path': match['source_path'],
         'title': details.get('title'),
         'title_hu': empty_to_none(hu.get('title')),
         'original_title': details.get('original_title'),
-        'original_language': details.get('original_language'),
-        'overview': empty_to_none(details.get('overview')),
-        'overview_hu': empty_to_none(hu.get('overview')),
-        'tagline': empty_to_none(details.get('tagline')),
-        'tagline_hu': empty_to_none(hu.get('tagline')),
         'release_date': release_date,
         'year': int(release_date[:4]) if release_date else None,
         'runtime': details.get('runtime'),
-        'status': details.get('status'),
-        'genres': [genre['name'] for genre in details.get('genres', [])],
         'keywords': [keyword['name'] for keyword in details.get('keywords', {}).get('keywords', [])],
-        'vote_average': details.get('vote_average'),
-        'vote_count': details.get('vote_count'),
         'cast': [
             {
                 'id': person['id'],
@@ -95,21 +112,79 @@ def parse_movie(data, match):
             {'id': person['id'], 'name': person['name']}
             for person in crew if person.get('job') == 'Director'
         ],
-        'poster_path': details.get('poster_path'),
-        'poster_path_hu': pick_image(images.get('posters', []), 'hu'),
-        'backdrop_path': details.get('backdrop_path'),
-        'logo_path': pick_image(images.get('logos', []), 'en'),
-        'logo_path_hu': pick_image(images.get('logos', []), 'hu'),
-        'trailer_key': pick_trailer(details),
         'collection': {
             'id': collection.get('id'),
             'name': collection.get('name'),
             'poster_path': collection.get('poster_path'),
             'backdrop_path': collection.get('backdrop_path'),
-        } if collection else None,
-        'recommendations': [r['id'] for r in details.get('recommendations', {}).get('results', [])],
-        'similar': [r['id'] for r in details.get('similar', {}).get('results', [])],
+        } if collection else None
     }
+
+
+# def parse_movie(data, match):
+#     """Turn one cached movie into a dictionary in the output format.
+    
+#     match is the entry from the matched list, which holds the folder info.
+#     """
+#     details = data['details']
+#     hu = get_translation(details)
+#     release_date = empty_to_none(details.get('release_date'))
+#     credits = details.get('credits', {})
+#     crew = credits.get('crew', [])
+#     cast = credits.get('cast', [])
+#     images = details.get('images', {})
+#     collection = details.get('belongs_to_collection') or {}  # null in TMDB → {} so .get() is safe
+
+#     return {
+#         'media_type': 'movie',
+#         'tmdb_id': details['id'],
+#         'imdb_id': details.get('imdb_id'),
+#         'source_folder': match['source_folder'],
+#         'source_path': match['source_path'],
+#         'title': details.get('title'),
+#         'title_hu': empty_to_none(hu.get('title')),
+#         'original_title': details.get('original_title'),
+#         'original_language': details.get('original_language'),
+#         'overview': empty_to_none(details.get('overview')),
+#         'overview_hu': empty_to_none(hu.get('overview')),
+#         'tagline': empty_to_none(details.get('tagline')),
+#         'tagline_hu': empty_to_none(hu.get('tagline')),
+#         'release_date': release_date,
+#         'year': int(release_date[:4]) if release_date else None,
+#         'runtime': details.get('runtime'),
+#         'status': details.get('status'),
+#         'genres': [genre['name'] for genre in details.get('genres', [])],
+#         'keywords': [keyword['name'] for keyword in details.get('keywords', {}).get('keywords', [])],
+#         'vote_average': details.get('vote_average'),
+#         'vote_count': details.get('vote_count'),
+#         'cast': [
+#             {
+#                 'id': person['id'],
+#                 'name': person['name'],
+#                 'character': person.get('character'),
+#                 'profile_path': person.get('profile_path'),  # None when TMDB has no photo
+#             }
+#             for person in cast[:10]  # already sorted by billing order
+#         ],
+#         'directors': [
+#             {'id': person['id'], 'name': person['name']}
+#             for person in crew if person.get('job') == 'Director'
+#         ],
+#         'poster_path': details.get('poster_path'),
+#         'poster_path_hu': pick_image(images.get('posters', []), 'hu'),
+#         'backdrop_path': details.get('backdrop_path'),
+#         'logo_path': pick_image(images.get('logos', []), 'en'),
+#         'logo_path_hu': pick_image(images.get('logos', []), 'hu'),
+#         'trailer_key': pick_trailer(details),
+#         'collection': {
+#             'id': collection.get('id'),
+#             'name': collection.get('name'),
+#             'poster_path': collection.get('poster_path'),
+#             'backdrop_path': collection.get('backdrop_path'),
+#         } if collection else None,
+#         'recommendations': [r['id'] for r in details.get('recommendations', {}).get('results', [])],
+#         'similar': [r['id'] for r in details.get('similar', {}).get('results', [])],
+#     }
 
 
 if __name__ == '__main__':
