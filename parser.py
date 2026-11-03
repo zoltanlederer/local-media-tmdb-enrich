@@ -1,4 +1,5 @@
 import json
+import statistics
 
 def empty_to_none(text):
     """Return None for missing or blank text, otherwise the text without surrounding spaces."""
@@ -45,6 +46,30 @@ def pick_image(images, language):
             return entry['file_path']
     return None
 
+
+def runtime_stats(seasons):
+    """Return average (median), total and per-season runtimes in minutes.
+
+    The average is the median, so double-length episodes don't pull it up.
+    Specials (season 0) are kept out of average and total.
+    """
+    runtimes = []       # every regular episode, for the average and total
+    per_season = {}     # season number → minutes
+
+    for season in seasons.values():
+        number = season['season_number']
+        season_runtimes = [episode['runtime'] for episode in season['episodes'] if episode.get('runtime') ]
+        per_season[number] = sum(season_runtimes)
+
+        if number != 0:
+            runtimes.extend(season_runtimes)  # add them all to the main list            
+
+    return {
+        'average': round(statistics.median(runtimes)) if runtimes else None,  # Median: sort all the values and take the middle one
+        'total': sum(runtimes),
+        'per_season': per_season,
+    }
+            
 
 def parse_common(details, match):
     """Return the fields that movies and TV shows read the same way."""
@@ -97,6 +122,56 @@ def parse_movie(data, match):
         'original_title': details.get('original_title'),
         'release_date': release_date,
         'year': int(release_date[:4]) if release_date else None,
+        'runtime': details.get('runtime'),
+        'keywords': [keyword['name'] for keyword in details.get('keywords', {}).get('keywords', [])],
+        'cast': [
+            {
+                'id': person['id'],
+                'name': person['name'],
+                'character': person.get('character'),
+                'profile_path': person.get('profile_path'),  # None when TMDB has no photo
+            }
+            for person in cast[:10]  # already sorted by billing order
+        ],
+        'directors': [
+            {'id': person['id'], 'name': person['name']}
+            for person in crew if person.get('job') == 'Director'
+        ],
+        'collection': {
+            'id': collection.get('id'),
+            'name': collection.get('name'),
+            'poster_path': collection.get('poster_path'),
+            'backdrop_path': collection.get('backdrop_path'),
+        } if collection else None
+    }
+
+
+def parse_tv(data, match):
+    """Turn one cached TV show into a dictionary in the output format.
+    
+    match is the entry from the matched list, which holds the folder info.
+    """
+    details = data['details']
+    hu = get_translation(details)
+    release_date = empty_to_none(details.get('first_air_date'))
+    credits = details.get('credits', {})
+    crew = credits.get('crew', [])
+    cast = credits.get('cast', [])
+    collection = details.get('belongs_to_collection') or {}  # null in TMDB → {} so .get() is safe
+    # runtime = 
+
+    return parse_common(details, match) | {
+        'media_type': 'tv',
+        'imdb_id': details['external_ids']['imdb_id'],
+        'tvdb_id': details['external_ids']['tvdb_id'],
+        'title': details.get('name'),
+        'title_hu': empty_to_none(hu.get('name')),
+        'original_title': details.get('original_name'),
+        'release_date': release_date,
+        'year': int(release_date[:4]) if release_date else None,
+        'last_air_date': empty_to_none(details.get('last_air_date')),
+        'number_of_seasons': details.get('number_of_seasons'),
+        'number_of_episodes': details.get('number_of_episodes'),
         'runtime': details.get('runtime'),
         'keywords': [keyword['name'] for keyword in details.get('keywords', {}).get('keywords', [])],
         'cast': [
