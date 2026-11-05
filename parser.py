@@ -82,6 +82,30 @@ def runtime_stats(seasons):
     }
 
 
+def parse_seasons(data, per_season):
+    """Return a list of seasons with English and Hungarian names and overviews, sorted by number."""
+    seasons_en = data.get('seasons_en', {})
+    seasons_hu = data.get('seasons_hu', {})
+    result = []
+
+    for key, season in seasons_en.items():       # key is e.g. 'season/1', season is its data
+        season_hu = seasons_hu.get(key, {})       # the same season in Hungarian, or {} if missing
+        number = season.get('season_number')
+
+        result.append({
+            'season_number': number,
+            'name': empty_to_none(season.get('name')),
+            'name_hu': empty_to_none(season_hu.get('name')),
+            'overview': empty_to_none(season.get('overview')),
+            'overview_hu': empty_to_none(season_hu.get('overview')),
+            'air_date': empty_to_none(season.get('air_date')),
+            'poster_path': empty_to_none(season.get('poster_path')),
+            'total_runtime': per_season.get(number),
+        })
+
+    return sorted(result, key=lambda s: s['season_number'])
+
+
 def parse_common(details, match):
     """Return the fields that movies and TV shows read the same way."""
     hu = get_translation(details)
@@ -197,7 +221,8 @@ def parse_tv(data, match):
         'creators': [
             {'id': person['id'], 'name': person['name']}
             for person in details.get('created_by', [])
-        ]
+        ],
+        'seasons': parse_seasons(data, stats['per_season'])
     }
 
 
@@ -208,9 +233,15 @@ if __name__ == '__main__':
     print(json.dumps(parse_movie(movie, movie_match), indent=2, ensure_ascii=False))
     print(parse_movie({'details': {'id': 1}}, movie_match))
 
+    print(20 * '*')
+
     with open('cache/tv/1668.json', encoding='utf-8') as f:
         tv = json.load(f)
     tv_match = {'source_folder': 'Friends test', 'source_path': '/media/tv/Friends test'}
     result = parse_tv(tv, tv_match)
     print(result['title'], result['title_hu'], result['runtime'], len(result['cast']))
     print(parse_tv({'details': {'id': 1}}, tv_match))
+    print(parse_seasons({'seasons_en': tv['seasons_en']}, {}))   # Hungarian seasons missing: must not crash
+
+    for season in result['seasons']:
+        print(season)
