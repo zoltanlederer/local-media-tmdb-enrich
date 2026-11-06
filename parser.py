@@ -82,6 +82,34 @@ def runtime_stats(seasons):
     }
 
 
+def parse_episodes(season, season_hu):
+    """Return the episodes of one season, each with its English and Hungarian text.
+
+    Episodes are matched by episode number, not by position, so a missing
+    Hungarian episode can't shift the titles of the ones after it.
+    """
+    # Hungarian episodes keyed by number: {1: {...}, 2: {...}, ...}
+    hu_by_number = {episode['episode_number']: episode for episode in season_hu.get('episodes', [])}
+    result = []
+
+    for episode in season.get('episodes', []):
+        number = episode.get('episode_number')
+        episode_hu = hu_by_number.get(number, {})  # the same episode in Hungarian, or {} if missing
+        
+        result.append({
+            'episode_number': number,
+            'name': empty_to_none(episode.get('name')),
+            'name_hu': empty_to_none(episode_hu.get('name')),
+            'overview': empty_to_none(episode.get('overview')),
+            'overview_hu': empty_to_none(episode_hu.get('overview')),
+            'air_date': empty_to_none(episode.get('air_date')),
+            'runtime': episode.get('runtime'),
+            'still_path': episode.get('still_path')
+        })
+
+    return result
+
+
 def parse_seasons(data, per_season):
     """Return a list of seasons with English and Hungarian names and overviews, sorted by number."""
     seasons_en = data.get('seasons_en', {})
@@ -101,6 +129,7 @@ def parse_seasons(data, per_season):
             'air_date': empty_to_none(season.get('air_date')),
             'poster_path': empty_to_none(season.get('poster_path')),
             'total_runtime': per_season.get(number),
+            'episodes': parse_episodes(season, season_hu)
         })
 
     return sorted(result, key=lambda s: s['season_number'])
@@ -244,4 +273,5 @@ if __name__ == '__main__':
     print(parse_seasons({'seasons_en': tv['seasons_en']}, {}))   # Hungarian seasons missing: must not crash
 
     for season in result['seasons']:
-        print(season)
+        print(season['season_number'], season['name_hu'], season['total_runtime'], len(season['episodes']), 'episodes')
+    
