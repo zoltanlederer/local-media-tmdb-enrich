@@ -1,4 +1,5 @@
 import json
+import csv
 from pathlib import Path
 from datetime import datetime
 
@@ -17,3 +18,17 @@ def write_json(items, path):
 
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)  # indented, because people open this file
+
+
+def write_unmatched(unmatched, path):
+    """Write the unmatched folders to a CSV, so the user can review and fix them.
+
+    The columns are fixed, so the file has the same layout even when the list is empty.
+    """
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+
+    with open(path, 'w', newline='', encoding='utf-8-sig') as csvfile:
+        fieldnames = ['title', 'year', 'media_type', 'reason', 'source_folder', 'source_path']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(unmatched)

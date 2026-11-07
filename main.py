@@ -13,7 +13,7 @@ from pathlib import Path
 from scanner import get_folders, clean_folder_name, candidate_titles
 from tmdb import search_tmdb, fetch_details, fetch_seasons
 from parser import parse_movie, parse_tv
-from output import write_json
+from output import write_json, write_unmatched
 
 
 def normalize(text):
@@ -147,6 +147,7 @@ def match_folders(folders, media_type):
                 'title': title,  # the cleaned title shows the user what was actually searched
                 'year': clean_folder['year'],
                 'source_folder': folder.name,
+                'source_path': str(folder.resolve()),
                 'media_type': media_type,
                 'reason': reason  # 'no_match' or 'fetch_failed', decided by find_best_match()
             })
@@ -158,6 +159,7 @@ def match_folders(folders, media_type):
                     'title': title,
                     'year': clean_folder['year'],
                     'source_folder': folder.name,
+                    'source_path': str(folder.resolve()),
                     'media_type': media_type,
                     'reason': 'duplicate'
                 })
@@ -190,6 +192,7 @@ def enrich(matched):
                 'title': match['title'],
                 'year': None,
                 'source_folder': match['source_folder'],
+                'source_path': match['source_path'],
                 'media_type': match['media_type'],
                 'reason': 'fetch_failed'
             })
@@ -246,3 +249,4 @@ unmatched = movie_unmatched + tv_unmatched + failed
 print(f'Items: {len(items)}, unmatched: {len(unmatched)}')
 
 write_json(items, 'exports/media.json')
+write_unmatched(unmatched, 'exports/unmatched.csv')
