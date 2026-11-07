@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from scanner import get_folders, clean_folder_name, candidate_titles
 from tmdb import search_tmdb, fetch_details, fetch_seasons
+from parser import parse_movie, parse_tv
 
 def normalize(text):
     """Lowercase the text, remove punctuation, and strip spaces at the ends."""
@@ -171,6 +172,34 @@ def match_folders(folders, media_type):
     return matched, unmatched
 
 
+def enrich(matched):
+    """Fetch (or load from cache) and parse every matched title.
+
+    Returns the parsed items, plus unmatched entries for titles whose fetch failed.
+    """
+    items = []
+    failed = []
+
+    for match in matched:
+        data = get_details(match['tmdb_id'], match['media_type'])
+        # a failed fetch isn't cached, so the next run tries again
+        if data is None:
+            failed.append({
+                'title': match['title'],
+                'year': None,
+                'source_folder': match['source_folder'],
+                'media_type': match['media_type'],
+                'reason': 'fetch_failed'
+            })
+        else:
+            if match['media_type'] == 'movie':
+                items.append(parse_movie(data, match))
+            elif match['media_type'] == 'tv':
+                items.append(parse_tv(data, match))
+
+    return items, failed
+
+
 # --- Command-line arguments ---
 parser = argparse.ArgumentParser(description='Scan local media and enrich metadata from TMDB')
 parser.add_argument('--movies', help='Path to the movies folder')
@@ -195,6 +224,9 @@ if tv and (not Path(tv).is_dir()):
 
 # --- Scan and match ---
 # The flag decides the media type, because a folder name alone can't tell a movie from a TV show
+movie_matched, movie_unmatched = [], []   # empty by default, in case --movies isn't given
+tv_matched, tv_unmatched = [], []
+
 if movies:
     movie_folders = get_folders(movies)
     print(f"Movies: {len(movie_folders)} folders")
@@ -204,3 +236,11 @@ if tv:
     tv_folders = get_folders(tv)
     print(f"TV shows: {len(tv_folders)} folders")
     tv_matched, tv_unmatched = match_folders(tv_folders, 'tv')
+
+# --- Enrich: fetch or load each title, and parse it into the output format ---
+items, failed = enrich(movie_matched + tv_matched)
+unmatched = movie_unmatched + tv_unmatched + failed
+
+print(f'Items: {len(items)}, unmatched: {len(unmatched)}')
+for item in items:
+    print(item['media_type'], item['tmdb_id'], item['title'])
