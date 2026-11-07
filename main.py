@@ -13,7 +13,7 @@ from pathlib import Path
 from scanner import get_folders, clean_folder_name, candidate_titles
 from tmdb import search_tmdb, fetch_details, fetch_seasons
 from parser import parse_movie, parse_tv
-from output import write_json, write_unmatched
+from output import write_json, write_unmatched, write_csv
 
 
 def normalize(text):
@@ -227,6 +227,8 @@ if movies and (not Path(movies).is_dir()):
 if tv and (not Path(tv).is_dir()):
     parser.error(f"--tv is not a folder: {tv}")
 
+output_file = Path('exports') / f'media.{output_format}'  # media.json or media.csv
+
 # --- Scan and match ---
 # The flag decides the media type, because a folder name alone can't tell a movie from a TV show
 movie_matched, movie_unmatched = [], []   # empty by default, in case --movies isn't given
@@ -246,7 +248,9 @@ if tv:
 items, failed = enrich(movie_matched + tv_matched)
 unmatched = movie_unmatched + tv_unmatched + failed
 
-print(f'Items: {len(items)}, unmatched: {len(unmatched)}')
-
-write_json(items, 'exports/media.json')
 write_unmatched(unmatched, 'exports/unmatched.csv')
+
+if output_format == 'csv':
+    write_csv(items, output_file)
+else:
+    write_json(items, output_file)
