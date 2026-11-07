@@ -1,7 +1,7 @@
 """
 Local Media TMDB Enrich
 Scans local movie and TV folders, matches each folder to a TMDB ID,
-and (in later steps) enriches every title with full TMDB metadata.
+enriches every title with full TMDB metadata, and writes it to a JSON file.
 """
 
 import argparse
@@ -13,6 +13,8 @@ from pathlib import Path
 from scanner import get_folders, clean_folder_name, candidate_titles
 from tmdb import search_tmdb, fetch_details, fetch_seasons
 from parser import parse_movie, parse_tv
+from output import write_json
+
 
 def normalize(text):
     """Lowercase the text, remove punctuation, and strip spaces at the ends."""
@@ -242,5 +244,5 @@ items, failed = enrich(movie_matched + tv_matched)
 unmatched = movie_unmatched + tv_unmatched + failed
 
 print(f'Items: {len(items)}, unmatched: {len(unmatched)}')
-for item in items:
-    print(item['media_type'], item['tmdb_id'], item['title'])
+
+write_json(items, 'exports/media.json')
