@@ -210,6 +210,7 @@ parser = argparse.ArgumentParser(description='Scan local media and enrich metada
 parser.add_argument('--movies', help='Path to the movies folder')
 parser.add_argument('--tv', help='Path to the TV shows folder')
 parser.add_argument('--format', default='json', choices=['json', 'csv'], help='Output format: json (default) or csv')
+parser.add_argument('--yes', action='store_true', help='Overwrite existing output files without asking')
 args = parser.parse_args()
 
 movies = args.movies
@@ -228,6 +229,11 @@ if tv and (not Path(tv).is_dir()):
     parser.error(f"--tv is not a folder: {tv}")
 
 output_file = Path('exports') / f'media.{output_format}'  # media.json or media.csv
+if output_file.exists() and not args.yes:
+    answer = input(f'{output_file} already exists. Overwrite it? [y/N] ')
+    if answer.strip().lower() != 'y':
+        print('Cancelled. Nothing was changed.')
+        raise SystemExit
 
 # --- Scan and match ---
 # The flag decides the media type, because a folder name alone can't tell a movie from a TV show
