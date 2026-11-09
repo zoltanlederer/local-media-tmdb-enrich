@@ -77,6 +77,11 @@ def find_best_match(candidates, year, media_type):
     return None, 'no_match'
 
 
+def cache_path(tmdb_id, media_type):
+    """Return the cache file path for a title."""
+    return Path('cache') / media_type / f'{tmdb_id}.json'
+
+
 def get_details(tmdb_id, media_type):
     """Return the full TMDB data for a title, from the cache if possible.
 
@@ -84,7 +89,7 @@ def get_details(tmdb_id, media_type):
     their seasons in English and Hungarian. Nothing is saved if any request fails,
     so a failed title is simply fetched again on the next run.
     """
-    cache_file = Path('cache') / media_type / f'{tmdb_id}.json'
+    cache_file = cache_path(tmdb_id, media_type)
 
     # 1. Already cached: load it and return it, no requests at all
     if cache_file.exists():
@@ -183,11 +188,18 @@ def enrich(matched):
     """
     items = []
     failed = []
-
-    for match in matched:
+    total = len(matched)
+    
+    for i, match in enumerate(matched, start=1): 
+        # Check before fetching: get_details() creates the cache file, so checking after would always say "cached"   
+        cached = cache_path(match['tmdb_id'], match['media_type']).exists()
+        print(f"Enriching {i}/{total}: {match['title']} ({'cached' if cached else 'fetching'})")
+        
         data = get_details(match['tmdb_id'], match['media_type'])
+
         # a failed fetch isn't cached, so the next run tries again
         if data is None:
+            print('    fetch failed, will retry on the next run')
             failed.append({
                 'title': match['title'],
                 'year': None,
@@ -228,6 +240,7 @@ if movies and (not Path(movies).is_dir()):
 if tv and (not Path(tv).is_dir()):
     parser.error(f"--tv is not a folder: {tv}")
 
+unmatched_file = Path('exports') / 'unmatched.csv'
 output_file = Path('exports') / f'media.{output_format}'  # media.json or media.csv
 if output_file.exists() and not args.yes:
     answer = input(f'{output_file} already exists. Overwrite it? [y/N] ')
@@ -254,9 +267,21 @@ if tv:
 items, failed = enrich(movie_matched + tv_matched)
 unmatched = movie_unmatched + tv_unmatched + failed
 
-write_unmatched(unmatched, 'exports/unmatched.csv')
+write_unmatched(unmatched, unmatched_file)
 
 if output_format == 'csv':
     write_csv(items, output_file)
 else:
     write_json(items, output_file)
+
+total_movies = sum(1 for item in items if item['media_type'] == 'movie')
+total_tv = sum(1 for item in items if item['media_type'] == 'tv')
+total_unmatched = len(unmatched)
+
+print(60 * '-')
+print('Done')
+print(f"  {'Movies:':<12}{total_movies}")
+print(f"  {'TV shows:':<12}{total_tv}")
+print(f"  {'Unmatched:':<12}{total_unmatched}" + (f"  → {unmatched_file}" if total_unmatched else ''))
+print(f"  {'Output:':<12}{output_file}")
+print(60 * '-')
