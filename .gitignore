@@ -223,6 +223,7 @@ __marimo__/
 config.py
 cache/
 exports/
+user_data/
 test_data/
 test_data_movie/
 test_data_tv/
