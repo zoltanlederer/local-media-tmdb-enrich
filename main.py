@@ -252,7 +252,7 @@ output_format = args.format
 # --- Validation: check all input before any slow work starts (fail fast) ---
 if not TMDB_READ_TOKEN or TMDB_READ_TOKEN.startswith('YOUR_'):
     parser.error('Add your TMDB Read Access Token to config.py (see config.example.py)')
-    
+
 if (not movies) and (not tv):
     parser.error('Provide at least one folder: --movies and/or --tv')
 
