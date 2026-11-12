@@ -1,6 +1,9 @@
 import requests
 import time
-from config import TMDB_API_KEY, TMDB_BASE_URL
+from config import TMDB_READ_TOKEN, TMDB_BASE_URL
+
+# Sent as a header, not in the URL, so the token never appears in error messages
+HEADERS = {'Authorization': f'Bearer {TMDB_READ_TOKEN}'}
 
 # Extra sections to include in each details request (one request instead of many)
 APPEND = {
@@ -8,13 +11,23 @@ APPEND = {
     'tv': 'aggregate_credits,keywords,videos,external_ids,translations,images,recommendations,similar,content_ratings',
 }
 
-def search_tmdb(title, media_type, year=None):
-    """ Search TMDB for a movie or TV show by title and optional year. Returns a dictionary or None. """ 
+
+def check_token():
+    """Return True if TMDB accepts the token, so a bad token can stop the run before any work."""
     try:
-        params = {"api_key": TMDB_API_KEY, "query": title}
+        response = requests.get(f'{TMDB_BASE_URL}/authentication', headers=HEADERS)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+    
+
+def search_tmdb(title, media_type, year=None):
+    """Search TMDB for a movie or TV show by title and optional year. Returns a dictionary or None.""" 
+    try:
+        params = {"query": title}
         if year:
             params["year"] = year
-        response = requests.get(f'{TMDB_BASE_URL}/search/{media_type}', params=params)
+        response = requests.get(f'{TMDB_BASE_URL}/search/{media_type}', params=params, headers=HEADERS)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as error: 
@@ -33,11 +46,10 @@ def fetch_details(tmdb_id, media_type):
     try:
         url = f'{TMDB_BASE_URL}/{media_type}/{tmdb_id}'
         params = {
-            'api_key': TMDB_API_KEY,
             'append_to_response': APPEND[media_type],  # which sections, depending on movie or TV
             'include_image_language': 'hu,en,null',   # filter for the images section: Hungarian, English, and no-text images
         }
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, headers=HEADERS)
         response.raise_for_status()
         return response.json()
 
@@ -60,12 +72,11 @@ def fetch_seasons(tmdb_id, season_numbers, language):
     for i in range(0, len(season_numbers), 20):
         chunk = season_numbers[i:i + 20]
         params = {
-            "api_key": TMDB_API_KEY,
             'append_to_response': ','.join(f'season/{n}' for n in chunk),  # 'season/0,season/1,...'
             'language': language,
         }
         try:
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, headers=HEADERS)
             response.raise_for_status()
         except requests.exceptions.RequestException as error:
             print(f"Something went wrong: {error}")

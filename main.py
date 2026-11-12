@@ -10,8 +10,9 @@ import unicodedata
 import re
 import json
 from pathlib import Path
+from config import TMDB_READ_TOKEN
 from scanner import get_folders, clean_folder_name, candidate_titles
-from tmdb import search_tmdb, fetch_details, fetch_seasons
+from tmdb import search_tmdb, fetch_details, fetch_seasons, check_token
 from parser import parse_movie, parse_tv
 from output import write_json, write_unmatched, write_csv
 from manual_matches import load_manual_matches, add_unmatched, MANUAL_MATCHES_FILE
@@ -249,6 +250,9 @@ tv = args.tv
 output_format = args.format
 
 # --- Validation: check all input before any slow work starts (fail fast) ---
+if not TMDB_READ_TOKEN or TMDB_READ_TOKEN.startswith('YOUR_'):
+    parser.error('Add your TMDB Read Access Token to config.py (see config.example.py)')
+    
 if (not movies) and (not tv):
     parser.error('Provide at least one folder: --movies and/or --tv')
 
@@ -258,6 +262,10 @@ if movies and (not Path(movies).is_dir()):
 
 if tv and (not Path(tv).is_dir()):
     parser.error(f"--tv is not a folder: {tv}")
+
+# network check
+if not check_token():
+    parser.error('TMDB rejected the token, or TMDB is unreachable. Check TMDB_READ_TOKEN in config.py and your internet connection.')
 
 unmatched_file = Path('exports') / 'unmatched.csv'
 output_file = Path('exports') / f'media.{output_format}'  # media.json or media.csv
