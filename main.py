@@ -14,6 +14,7 @@ from scanner import get_folders, clean_folder_name, candidate_titles
 from tmdb import search_tmdb, fetch_details, fetch_seasons
 from parser import parse_movie, parse_tv
 from output import write_json, write_unmatched, write_csv
+from manual_matches import load_manual_matches, add_unmatched, MANUAL_MATCHES_FILE
 
 
 def normalize(text):
@@ -122,13 +123,14 @@ def get_details(tmdb_id, media_type):
     return data
 
 
-def match_folders(folders, media_type):
+def match_folders(folders, media_type, manual_matches):
     """Search TMDB for each folder and sort the results into matched and unmatched lists.
 
     Each folder name can produce several candidate titles (e.g. a Hungarian and an
     English title); find_best_match() tries them and prefers an exact title match.
     Every folder ends up in exactly one of the two lists, so no title is lost silently.
     Unmatched entries keep a 'reason' so the user knows what to fix.
+    Folders listed in the manual matches file skip the search and use the user’s TMDB ID and type.
     """
     matched = []
     unmatched = []
@@ -137,6 +139,23 @@ def match_folders(folders, media_type):
     total = len(folders)
     for i, folder in enumerate(folders, start=1):
         print(f"Scanning {i}/{total}: {folder.name}")
+
+        # The user's manual match wins: no search needed
+        if folder.name in manual_matches:
+            manual = manual_matches[folder.name]
+            key = (manual['media_type'], manual['tmdb_id'])
+            if key not in seen:
+                seen.add(key)
+                matched.append({
+                    'title': folder.name,  # the real title comes from TMDB when the details are parsed
+                    'tmdb_id': manual['tmdb_id'],
+                    'source_folder': folder.name,
+                    'source_path': str(folder.resolve()),
+                    'media_type': manual['media_type'],  # the user's type, which may differ from the folder's flag
+                })
+                print('    manual match')
+            continue  # skip the search for this folder
+
         clean_folder = clean_folder_name(folder.name)
         # macOS can store accented letters differently from what TMDB expects; NFC makes them consistent
         title = unicodedata.normalize('NFC', clean_folder['title'])
@@ -248,6 +267,8 @@ if output_file.exists() and not args.yes:
         print('Cancelled. Nothing was changed.')
         raise SystemExit
 
+manual_matches = load_manual_matches(MANUAL_MATCHES_FILE)
+
 # --- Scan and match ---
 # The flag decides the media type, because a folder name alone can't tell a movie from a TV show
 movie_matched, movie_unmatched = [], []   # empty by default, in case --movies isn't given
@@ -256,18 +277,19 @@ tv_matched, tv_unmatched = [], []
 if movies:
     movie_folders = get_folders(movies)
     print(f"Movies: {len(movie_folders)} folders")
-    movie_matched, movie_unmatched = match_folders(movie_folders, 'movie')
+    movie_matched, movie_unmatched = match_folders(movie_folders, 'movie', manual_matches)
 
 if tv:
     tv_folders = get_folders(tv)
     print(f"TV shows: {len(tv_folders)} folders")
-    tv_matched, tv_unmatched = match_folders(tv_folders, 'tv')
+    tv_matched, tv_unmatched = match_folders(tv_folders, 'tv', manual_matches)
 
 # --- Enrich: fetch or load each title, and parse it into the output format ---
 items, failed = enrich(movie_matched + tv_matched)
 unmatched = movie_unmatched + tv_unmatched + failed
 
 write_unmatched(unmatched, unmatched_file)
+add_unmatched(MANUAL_MATCHES_FILE, unmatched)
 
 if output_format == 'csv':
     write_csv(items, output_file)
@@ -283,5 +305,6 @@ print('Done')
 print(f"  {'Movies:':<12}{total_movies}")
 print(f"  {'TV shows:':<12}{total_tv}")
 print(f"  {'Unmatched:':<12}{total_unmatched}" + (f"  → {unmatched_file}" if total_unmatched else ''))
+print(f"  {'Fix list:':<12}{MANUAL_MATCHES_FILE}")
 print(f"  {'Output:':<12}{output_file}")
 print(60 * '-')
