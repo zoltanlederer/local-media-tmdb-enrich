@@ -1,5 +1,7 @@
-import requests
 import time
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from config import TMDB_READ_TOKEN, TMDB_BASE_URL
 
 # Sent as a header, not in the URL, so the token never appears in error messages
@@ -11,11 +13,26 @@ APPEND = {
     'tv': 'aggregate_credits,keywords,videos,external_ids,translations,images,recommendations,similar,content_ratings',
 }
 
+# One shared session: reuses connections, and retries temporary failures automatically
+SESSION = requests.Session()
+SESSION.headers.update(HEADERS)  # every request through the session gets the token
+SESSION.mount('https://', HTTPAdapter(max_retries=Retry(
+    total=3,                                     # up to 3 retries per request
+    backoff_factor=1,                            # wait 1s, 2s, 4s between them
+    status_forcelist=[429, 500, 502, 503, 504],  # rate limit and temporary server errors
+)))
+
+# Seconds to wait: (to connect, to receive the response). Without this, requests can wait forever.
+TIMEOUT = (5, 30)
+
 
 def check_token():
-    """Return True if TMDB accepts the token, so a bad token can stop the run before any work."""
+    """Return True if TMDB accepts the token, so a bad token can stop the run before any work.
+
+    Uses a single request without retries, so a missing connection is reported quickly.
+    """
     try:
-        response = requests.get(f'{TMDB_BASE_URL}/authentication', headers=HEADERS)
+        response = requests.get(f'{TMDB_BASE_URL}/authentication', headers=HEADERS, timeout=TIMEOUT)
         return response.status_code == 200
     except requests.exceptions.RequestException:
         return False
@@ -27,7 +44,7 @@ def search_tmdb(title, media_type, year=None):
         params = {"query": title}
         if year:
             params["year"] = year
-        response = requests.get(f'{TMDB_BASE_URL}/search/{media_type}', params=params, headers=HEADERS)
+        response = SESSION.get(f'{TMDB_BASE_URL}/search/{media_type}', params=params, timeout=TIMEOUT)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as error: 
@@ -49,7 +66,7 @@ def fetch_details(tmdb_id, media_type):
             'append_to_response': APPEND[media_type],  # which sections, depending on movie or TV
             'include_image_language': 'hu,en,null',   # filter for the images section: Hungarian, English, and no-text images
         }
-        response = requests.get(url, params=params, headers=HEADERS)
+        response = SESSION.get(url, params=params, timeout=TIMEOUT)
         response.raise_for_status()
         return response.json()
 
@@ -76,7 +93,7 @@ def fetch_seasons(tmdb_id, season_numbers, language):
             'language': language,
         }
         try:
-            response = requests.get(url, params=params, headers=HEADERS)
+            response = SESSION.get(url, params=params, timeout=TIMEOUT)
             response.raise_for_status()
         except requests.exceptions.RequestException as error:
             print(f"Something went wrong: {error}")

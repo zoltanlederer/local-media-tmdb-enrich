@@ -264,6 +264,7 @@ if tv and (not Path(tv).is_dir()):
     parser.error(f"--tv is not a folder: {tv}")
 
 # network check
+print('Checking the TMDB connection...')
 if not check_token():
     parser.error('TMDB rejected the token, or TMDB is unreachable. Check TMDB_READ_TOKEN in config.py and your internet connection.')
 
