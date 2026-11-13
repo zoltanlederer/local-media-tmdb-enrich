@@ -80,16 +80,3 @@ def candidate_titles(title):
                 candidates.append(piece)
 
     return sorted(candidates, key=has_hungarian_letters)
-
-
-if __name__ == '__main__':
-    tests = [
-        "Ausztrál kamionosok (Outback Truckers",
-        "Világunk történelme - Andrew Marr's History of the World",
-        "Friends (Extended, Exclusive & Unseen",
-        "Hawaii Five-0",
-        "Columbo",
-    ]
-    for t in tests:
-        print(t, '→', candidate_titles(t))
-

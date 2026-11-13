@@ -1,5 +1,5 @@
 import pytest
-from scanner import clean_folder_name
+from scanner import clean_folder_name, candidate_titles, has_hungarian_letters
 
 
 @pytest.mark.parametrize('folder_name, expected_title, expected_year', [
@@ -21,3 +21,36 @@ from scanner import clean_folder_name
 def test_clean_folder_name(folder_name, expected_title, expected_year):
     result = clean_folder_name(folder_name)
     assert result == {'title': expected_title, 'year': expected_year}
+
+
+@pytest.mark.parametrize('title, expected', [
+    pytest.param('Ausztrál kamionosok (Outback Truckers',
+                 ['Outback Truckers', 'Ausztrál kamionosok'],
+                 id='bracket-english-first'),
+    pytest.param("Világunk történelme - Andrew Marr's History of the World",
+                 ["Andrew Marr's History of the World", 'Világunk történelme'],
+                 id='dash-split-english-first'),
+    pytest.param('Friends (Extended, Exclusive & Unseen',
+                 ['Friends', 'Extended, Exclusive & Unseen'],
+                 id='bracket-junk-keeps-order'),
+    pytest.param('Hawaii Five-0',
+                 ['Hawaii Five-0'],
+                 id='dash-without-spaces-not-split'),
+    pytest.param('Columbo',
+                 ['Columbo'],
+                 id='single-title'),
+])
+def test_candidate_titles(title, expected):
+    result = candidate_titles(title)
+    assert result == expected
+
+
+@pytest.mark.parametrize('text, expected', [
+    ('Jóbarátok', True),
+    ('Friends', False),
+    pytest.param('ÉLET', True, id='uppercase-accent'),
+    pytest.param('', False, id='empty-text'),
+])
+def test_has_hungarian_letters(text, expected):
+    result = has_hungarian_letters(text)
+    assert result == expected
