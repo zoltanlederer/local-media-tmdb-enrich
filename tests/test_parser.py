@@ -79,3 +79,36 @@ SEASONS = {
 def test_runtime_stats(seasons, expected):
     result = runtime_stats(seasons)
     assert result == expected
+
+
+SEASON = {'episodes': [
+    {'episode_number': 1, 'name': 'Pilot', 'overview': 'Rachel leaves her fiancé.', 'air_date': '1994-09-22', 'runtime': 23, 'still_path': '/a.jpg'},
+    {'episode_number': 2, 'name': 'The One with the Sonogram', 'overview': '', 'air_date': '1994-09-29', 'runtime': 23, 'still_path': None},
+    {'episode_number': 3, 'name': 'The One with the Thumb', 'overview': 'Phoebe gets money.', 'air_date': '1994-10-06', 'runtime': 22, 'still_path': '/c.jpg'},
+]}
+
+SEASON_HU = {'episodes': [
+    {'episode_number': 1, 'name': 'Randi vagy nem randi', 'overview': 'Rachel elhagyja a vőlegényét.'},
+    {'episode_number': 3, 'name': 'A hüvelykujj', 'overview': ''},
+]}
+
+
+def test_parse_episodes_matches_hungarian_by_number():
+    result = parse_episodes(SEASON, SEASON_HU)
+
+    # episode 2 has no Hungarian twin, and episode 3 keeps its own title (no shifting)
+    assert [episode['name_hu'] for episode in result] == ['Randi vagy nem randi', None, 'A hüvelykujj']
+
+
+def test_parse_episodes_turns_blank_overviews_into_none():
+    result = parse_episodes(SEASON, SEASON_HU)
+
+    assert [episode['overview'] for episode in result] == ['Rachel leaves her fiancé.', None, 'Phoebe gets money.']
+    assert [episode['overview_hu'] for episode in result] == ['Rachel elhagyja a vőlegényét.', None, None]
+
+
+def test_parse_episodes_without_hungarian_season():
+    result = parse_episodes(SEASON, {})
+
+    assert len(result) == 3
+    assert all(episode['name_hu'] is None for episode in result)  # all(…) is a built-in function that returns True if every item is true
