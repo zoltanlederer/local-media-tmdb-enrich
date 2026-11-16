@@ -63,3 +63,19 @@ TRAILERS_VIMEO = {'videos': {'results': [
 def test_pick_trailer(details, expected):
     result = pick_trailer(details)
     assert result == expected
+
+
+SEASONS = {
+    'season/0': {'season_number': 0, 'episodes': [{'runtime': 2}, {'runtime': 90}]},  # specials
+    'season/1': {'season_number': 1, 'episodes': [{'runtime': 23}, {'runtime': 22}, {'runtime': 46}]},
+    'season/2': {'season_number': 2, 'episodes': [{'runtime': 23}, {'runtime': None}]},  # one missing runtime
+}
+
+
+@pytest.mark.parametrize('seasons, expected', [
+    pytest.param(SEASONS, {'average': 23, 'total': 114, 'per_season': {0: 92, 1: 91, 2: 23}}, id='specials-and-missing-skipped'),
+    pytest.param({}, {'average': None, 'total': 0, 'per_season': {}}, id='empty-show'),
+])
+def test_runtime_stats(seasons, expected):
+    result = runtime_stats(seasons)
+    assert result == expected
