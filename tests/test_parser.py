@@ -112,3 +112,75 @@ def test_parse_episodes_without_hungarian_season():
 
     assert len(result) == 3
     assert all(episode['name_hu'] is None for episode in result)  # all(…) is a built-in function that returns True if every item is true
+
+
+MATCH = {'source_folder': 'Test folder', 'source_path': '/media/test'}
+
+
+def test_parse_movie_with_almost_no_data():
+    result = parse_movie({'details': {'id': 1}}, MATCH)
+
+    assert result['media_type'] == 'movie'
+    assert result['title'] is None
+    assert result['genres'] == []
+    assert result['collection'] is None
+
+
+def test_parse_tv_with_almost_no_data():
+    result = parse_tv({'details': {'id': 1}}, MATCH)
+
+    assert result['media_type'] == 'tv'
+    assert result['seasons'] == []
+    assert result['runtime'] is None
+
+
+def test_parse_movie_null_collection_becomes_none():
+    result = parse_movie({'details': {'id': 13, 'belongs_to_collection': None}}, MATCH)
+
+    assert result['collection'] is None
+
+
+def test_parse_movie_collection_keeps_only_chosen_fields():
+    details = {'id': 51497, 'belongs_to_collection': {
+        'id': 9485,
+        'name': 'The Fast and the Furious Collection',
+        'poster_path': '/p.jpg',
+        'backdrop_path': '/b.jpg',
+        'extra': 'ignore me',  # a field TMDB might add one day: must not reach the output
+    }}
+    result = parse_movie({'details': details}, MATCH)
+
+    assert result['collection'] == {
+        'id': 9485,
+        'name': 'The Fast and the Furious Collection',
+        'poster_path': '/p.jpg',
+        'backdrop_path': '/b.jpg',
+    }
+
+
+@pytest.mark.parametrize('details, expected', [
+    pytest.param({'id': 1, 'release_date': '2011-04-20'}, 2011, id='date-gives-int-year'),
+    pytest.param({'id': 1, 'release_date': ''}, None, id='empty-date'),
+    pytest.param({'id': 1}, None, id='missing-date'),
+])
+def test_parse_movie_year_from_release_date(details, expected):
+    result = parse_movie({'details': details}, MATCH)
+
+    assert result['year'] == expected
+
+
+def test_parse_tv_reads_its_own_fields():
+    details = {
+        'id': 1668,
+        'name': 'Friends',
+        'first_air_date': '1994-09-22',
+        'external_ids': {'imdb_id': 'tt0108778', 'tvdb_id': 79168},
+    }
+
+    result = parse_tv({'details': details}, MATCH)
+
+    assert result['title'] == 'Friends'
+    assert result['release_date'] == '1994-09-22'
+    assert result['year'] == 1994
+    assert result['imdb_id'] == 'tt0108778'
+    assert result['tvdb_id'] == 79168
