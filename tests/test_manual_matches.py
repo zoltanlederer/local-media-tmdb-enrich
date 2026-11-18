@@ -1,5 +1,6 @@
 import pytest
-from manual_matches import load_manual_matches
+import csv
+from manual_matches import load_manual_matches, add_unmatched
 
 
 def test_load_manual_matches_missing_file_returns_empty_dict(tmp_path):
@@ -52,3 +53,91 @@ def test_load_manual_matches_media_type_is_normalized(tmp_path):
     result = load_manual_matches(path)
 
     assert result == {'Columbo': {'tmdb_id': 873, 'media_type': 'tv'}}
+
+
+def test_add_unmatched_new_file(tmp_path):
+    path = tmp_path / 'manual_fix_matches.csv'
+
+    unmatched = [{
+        'title': 'Columbo',
+        'year': 1971,
+        'source_folder': 'Columbo',
+        'source_path': '/media/tv/Columbo',
+        'media_type': 'tv',
+        'reason': 'no_match'
+    }]
+
+    add_unmatched(path, unmatched)
+
+    with open(path, encoding='utf-8-sig') as file:
+        rows = list(csv.DictReader(file))
+
+    assert rows == [
+        {'source_folder': 'Columbo', 'media_type': 'tv', 'tmdb_id': '', 'searched_title': 'Columbo'},
+    ]
+
+
+def test_add_unmatched_only_no_match_added(tmp_path):
+    path = tmp_path / 'manual_fix_matches.csv'
+
+    unmatched = [
+        {
+            'title': 'Friends',
+            'year': 1994,
+            'source_folder': 'Friends',
+            'source_path': '/media/tv/Friends',
+            'media_type': 'tv',
+            'reason': 'fetch_failed',
+        },
+        {
+            'title': 'Columbo',
+            'year': 1971,
+            'source_folder': 'Columbo',
+            'source_path': '/media/tv/Columbo',
+            'media_type': 'tv',
+            'reason': 'no_match',
+        },
+    ]
+
+    add_unmatched(path, unmatched)
+
+    with open(path, encoding='utf-8-sig') as file:
+        rows = list(csv.DictReader(file))
+
+    assert rows == [
+        {'source_folder': 'Columbo', 'media_type': 'tv', 'tmdb_id': '', 'searched_title': 'Columbo'},
+    ]
+
+
+def test_add_unmatched_an_existing_file_is_respected(tmp_path):
+    path = tmp_path / 'manual_fix_matches.csv'
+    path.write_text("source_folder,media_type,tmdb_id,searched_title\nColumbo,tv,873,Columbo\n", encoding='utf-8-sig')
+
+    unmatched = [
+        {
+            'title': 'Some Show',
+            'year': 1990,
+            'source_folder': 'Some Show',
+            'source_path': '/media/tv/Some_Show',
+            'media_type': 'tv',
+            'reason': 'no_match',
+        },
+        {
+            'title': 'Columbo',
+            'year': 1971,
+            'source_folder': 'Columbo',
+            'source_path': '/media/tv/Columbo',
+            'media_type': 'tv',
+            'reason': 'no_match',
+        },
+    ]
+
+    add_unmatched(path, unmatched)
+
+    with open(path, encoding='utf-8-sig') as file:
+        rows = list(csv.DictReader(file))
+
+    assert rows == [
+        {'source_folder': 'Columbo', 'media_type': 'tv', 'tmdb_id': '873', 'searched_title': 'Columbo'},
+        {'source_folder': 'Some Show', 'media_type': 'tv', 'tmdb_id': '', 'searched_title': 'Some Show'},
+    ]
