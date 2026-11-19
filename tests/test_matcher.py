@@ -1,6 +1,6 @@
 import pytest
-import main
-from main import normalize, is_exact_match, find_best_match
+import matcher
+from matcher import normalize, is_exact_match, find_best_match
 
 
 @pytest.mark.parametrize('text, expected', [
@@ -34,7 +34,7 @@ def test_find_best_match_prefers_exact_match_further_down(monkeypatch):
             {'id': 2584, 'name': 'Dirty Jobs'},
         ]}
 
-    monkeypatch.setattr(main, 'search_with_retry', fake_search)
+    monkeypatch.setattr(matcher, 'search_with_retry', fake_search)
 
     result, reason = find_best_match(['Dirty Jobs'], None, 'tv')
 
@@ -48,7 +48,7 @@ def test_find_best_match_falls_back_to_first_result(monkeypatch):
             {'id': 105977, 'name': "Dirty Jobs: Rowe'd Trip"},
         ]}
 
-    monkeypatch.setattr(main, 'search_with_retry', fake_search)
+    monkeypatch.setattr(matcher, 'search_with_retry', fake_search)
 
     result, reason = find_best_match(['Dirty Jobs'], None, 'tv')
 
@@ -60,7 +60,7 @@ def test_find_best_match_reports_failed_request(monkeypatch):
     def fake_search(title, year, media_type):
         return None
 
-    monkeypatch.setattr(main, 'search_with_retry', fake_search)
+    monkeypatch.setattr(matcher, 'search_with_retry', fake_search)
 
     result, reason = find_best_match(['Dirty Jobs'], None, 'tv')
 
@@ -72,7 +72,7 @@ def test_find_best_match_reports_no_match(monkeypatch):
     def fake_search(title, year, media_type):
         return {'results': []}
 
-    monkeypatch.setattr(main, 'search_with_retry', fake_search)
+    monkeypatch.setattr(matcher, 'search_with_retry', fake_search)
 
     result, reason = find_best_match(['Dirty Jobs'], None, 'tv')
 
