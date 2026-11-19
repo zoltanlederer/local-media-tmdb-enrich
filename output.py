@@ -1,3 +1,7 @@
+"""
+Write the results to files: the media export (JSON or CSV) and the unmatched report.
+"""
+
 import json
 import csv
 from pathlib import Path

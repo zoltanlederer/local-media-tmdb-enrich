@@ -1,3 +1,10 @@
+"""
+Read and update the user's fix list (manual_fix_matches.csv).
+
+Folders that couldn't be matched are added with an empty TMDB ID. Once the user
+fills in the ID, the next run uses it instead of searching.
+"""
+
 import csv
 from pathlib import Path
 

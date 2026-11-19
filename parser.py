@@ -1,3 +1,10 @@
+"""
+Turn raw TMDB data into the tool's own output format.
+
+Picks the fields MediaHome needs, adds the Hungarian translations, and builds
+the season and episode lists for TV shows. Missing data becomes None or an empty list.
+"""
+
 import json
 import statistics
 

@@ -1,3 +1,10 @@
+"""
+Find media folders on disk and turn their messy names into searchable titles.
+
+Skips extras and season folders, strips release junk (quality, codecs, groups)
+from folder names, and splits names that hold two titles into candidates.
+"""
+
 import re
 from pathlib import Path
 from config import IGNORED_FOLDERS

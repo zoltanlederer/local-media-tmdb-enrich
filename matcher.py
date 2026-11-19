@@ -1,3 +1,11 @@
+"""
+Match each scanned folder to a TMDB title.
+
+Tries every candidate title from the folder name, prefers an exact title match,
+and sorts the folders into matched and unmatched lists. Manual matches from the
+fix list skip the search.
+"""
+
 import unicodedata
 import time
 import re

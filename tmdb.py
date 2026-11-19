@@ -1,3 +1,10 @@
+"""
+Talk to the TMDB API.
+
+All requests share one session with the Read Access Token, timeouts, and automatic
+retries for rate limits and server errors. Every function returns None on failure.
+"""
+
 import time
 import requests
 from requests.adapters import HTTPAdapter
