@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 from config import IGNORED_FOLDERS
 
+
 def get_folders(root_folder):
     """
     Walk through all subfolders recursively, skip anything in the
@@ -9,15 +10,17 @@ def get_folders(root_folder):
     and return a list of folder paths to process.
     """
     folders = []
+    ignored = {name.lower() for name in IGNORED_FOLDERS}
     for folder in Path(root_folder).rglob('*'):
         # Season folders (e.g. "Season 01", "Season 01 (2010–11)", "S01") are filtered here via regex, not in IGNORED_FOLDERS
         if (folder.is_dir() 
-            and folder.name.lower() not in [f.lower() for f in IGNORED_FOLDERS]
+            and folder.name.lower() not in ignored
             and not re.match(r'^Season\s*\d*', folder.name, re.IGNORECASE)
             and not re.match(r'^S\d{2}$', folder.name, re.IGNORECASE)):
-                folders.append(folder)
+            folders.append(folder)
 
     return folders
+
 
 def clean_folder_name(folder_name):
     """ Clean up a messy folder name and return a dictionary with title and year """
@@ -61,6 +64,7 @@ def has_hungarian_letters(text):
         if char in 'áéíóöőúüű':
             return True
     return False
+
 
 def candidate_titles(title):
     """Split a cleaned title into possible search titles, using brackets and ' - ' as separators."""
