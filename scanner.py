@@ -1,13 +1,54 @@
 """
 Find media folders on disk and turn their messy names into searchable titles.
 
-Skips extras and season folders, strips release junk (quality, codecs, groups)
-from folder names, and splits names that hold two titles into candidates.
+Movie folders are found by the video files they contain; TV folders by name, skipping season folders.
+Release junk (quality, codecs, groups) is stripped from folder names, and names that hold two titles are split into candidates.
 """
 
 import re
+import os
+import unicodedata
 from pathlib import Path
 from config import IGNORED_FOLDERS
+
+
+VIDEO_EXTENSIONS = {'.mkv', '.mp4', '.avi', '.m4v', '.iso'}
+
+
+def ignore_key(text):
+    """Return the text in the form used for ignore-list comparisons: NFC-normalized and lowercase."""
+    return unicodedata.normalize('NFC', text).lower()
+
+
+def get_movie_folders(root_folder):
+    """Return every folder that directly contains a video file, skipping ignored folders and files."""
+    ignored = {ignore_key(name) for name in IGNORED_FOLDERS}
+    folders = []
+
+    for dirpath, dirnames, filenames in os.walk(root_folder):
+        parent = Path(dirpath).name   # the current folder's own name, e.g. 'Harry Potter Collection'
+
+        # Prune: keep only the subfolders that aren't ignored.
+        # Changing dirnames in place ([:]) tells os.walk not to go into the removed ones.
+        dirnames[:] = [
+            name for name in dirnames
+            if ignore_key(name) not in ignored
+            and ignore_key(f'{parent}/{name}') not in ignored
+        ]
+        dirnames.sort()   # in place, so os.walk visits subfolders alphabetically: same order every run
+
+        # Video check: does this folder directly contain a video file that isn't ignored?
+        has_video = False
+        for filename in filenames:
+            if Path(filename).suffix.lower() in VIDEO_EXTENSIONS and ignore_key(filename) not in ignored:
+                has_video = True
+                break
+
+        # If yes: add the folder as a Path
+        if has_video:
+            folders.append(Path(dirpath))
+
+    return folders
 
 
 def get_folders(root_folder):
