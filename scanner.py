@@ -82,9 +82,16 @@ def clean_folder_name(folder_name):
             second_year = re.search(r'\b\d{4}\b', title) # checking if there is a year in the string again
             if second_year: # cut title at the second year to remove remaining junk
                 title = title[:second_year.start()] # then keep the string from the beginning until the first index of the year
+            year = year.group()
         else:
-            title = folder[:year.start()] # keep the string from the beginning until the first index of the year
-        year = year.group() # extract the matched year string from the match object
+            # Is the year directly followed by another one? e.g. 'Blade.Runner.2049.2017'
+            next_year = re.match(r'[. ](\d{4})\b', folder[year.end():])
+            if next_year and (1910 <= int(next_year.group(1)) <= 2090):  # e.g. 'Blade.Runner.2049.2017': 2049 is part of the title
+                title = folder[:year.end()]   # the first number belongs to the title: 'Blade.Runner.2049'
+                year = next_year.group(1)     # the second one is the real year: '2017'
+            else:
+                title = folder[:year.start()] # normal case: everything before the year
+                year = year.group()
     else:
         title = folder
         year = None

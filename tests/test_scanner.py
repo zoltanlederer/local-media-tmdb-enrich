@@ -18,6 +18,8 @@ from scanner import clean_folder_name, candidate_titles, has_hungarian_letters, 
     ('Black.Doves.COMPLETE.WEBRip.x264', 'Black Doves', None),
     ('Back to the Future', 'Back to the Future', None),
     ('How I Met Your Mother (2005-2014)', 'How I Met Your Mother', '2005'),
+    ('Blade.Runner.2049.2017.1080p.BluRay.x265-RARBG', 'Blade Runner 2049', '2017'),
+    ('Godzilla.2000.1999.JAPANESE.1080p.BluRay.x265-VXT', 'Godzilla 2000', '1999'),
 ])
 def test_clean_folder_name(folder_name, expected_title, expected_year):
     result = clean_folder_name(folder_name)
