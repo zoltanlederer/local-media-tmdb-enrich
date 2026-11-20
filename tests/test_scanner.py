@@ -1,5 +1,6 @@
 import pytest
-from scanner import clean_folder_name, candidate_titles, has_hungarian_letters
+import scanner
+from scanner import clean_folder_name, candidate_titles, has_hungarian_letters, get_movie_folders, ignore_key
 
 
 @pytest.mark.parametrize('folder_name, expected_title, expected_year', [
@@ -54,3 +55,32 @@ def test_candidate_titles(title, expected):
 def test_has_hungarian_letters(text, expected):
     result = has_hungarian_letters(text)
     assert result == expected
+
+
+def make_file(path):
+    """Create an empty file, and any missing folders on the way to it."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch()
+
+
+def test_get_movie_folders(tmp_path, monkeypatch):
+    monkeypatch.setattr(scanner, 'IGNORED_FOLDERS', ['Sample', 'Collection/Angol'])
+
+    make_file(tmp_path / 'Collection' / 'Movie A' / 'movie.mkv')
+    make_file(tmp_path / 'Collection' / 'folder.jpg')
+    make_file(tmp_path / 'Movie B' / 'MOVIE.MP4')
+    make_file(tmp_path / 'Collection' / 'Movie A' / 'Sample' / 'sample.mkv')
+    make_file(tmp_path / 'Collection' / 'Angol' / 'Movie C' / 'movie.mkv')
+    make_file(tmp_path / 'Covers' / 'front.jpg')
+
+    result = get_movie_folders(tmp_path)
+
+    assert sorted(folder.name for folder in result) == ['Movie A', 'Movie B']
+
+
+def test_ignore_key_treats_accent_forms_and_case_as_equal():
+    composed = 'Ég'            # É as one character
+    decomposed = 'E\u0301g'    # E + combining accent mark, as macOS may store it
+
+    assert ignore_key(composed) == ignore_key(decomposed)
+    assert ignore_key('SAMPLE') == ignore_key('sample')
