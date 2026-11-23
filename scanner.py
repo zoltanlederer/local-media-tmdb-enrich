@@ -138,4 +138,9 @@ def candidate_titles(title):
             if piece:  # skip empty strings, e.g. when a title starts with '('
                 candidates.append(piece)
 
+    # Step 3: uploaders sometimes add ' 1' to the first film of a series ('Grown Ups 1'),
+    # so also try the title without it. The original stays first, in case the 1 is real.
+    extra = [candidate[:-2] for candidate in candidates if candidate.endswith(' 1')]
+    candidates = candidates + extra
+
     return sorted(candidates, key=has_hungarian_letters)

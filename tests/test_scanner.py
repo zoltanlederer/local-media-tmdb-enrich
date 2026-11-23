@@ -28,20 +28,23 @@ def test_clean_folder_name(folder_name, expected_title, expected_year):
 
 @pytest.mark.parametrize('title, expected', [
     pytest.param('Ausztrál kamionosok (Outback Truckers',
-                 ['Outback Truckers', 'Ausztrál kamionosok'],
-                 id='bracket-english-first'),
+                ['Outback Truckers', 'Ausztrál kamionosok'],
+                id='bracket-english-first'),
     pytest.param("Világunk történelme - Andrew Marr's History of the World",
-                 ["Andrew Marr's History of the World", 'Világunk történelme'],
-                 id='dash-split-english-first'),
+                ["Andrew Marr's History of the World", 'Világunk történelme'],
+                id='dash-split-english-first'),
     pytest.param('Friends (Extended, Exclusive & Unseen',
-                 ['Friends', 'Extended, Exclusive & Unseen'],
-                 id='bracket-junk-keeps-order'),
+                ['Friends', 'Extended, Exclusive & Unseen'],
+                id='bracket-junk-keeps-order'),
     pytest.param('Hawaii Five-0',
-                 ['Hawaii Five-0'],
-                 id='dash-without-spaces-not-split'),
+                ['Hawaii Five-0'],
+                id='dash-without-spaces-not-split'),
     pytest.param('Columbo',
-                 ['Columbo'],
-                 id='single-title'),
+                ['Columbo'],
+                id='single-title'),
+    pytest.param('Grown Ups 1',
+                ['Grown Ups 1', 'Grown Ups'],
+                id='trailing-one-also-tried-without'),
 ])
 def test_candidate_titles(title, expected):
     result = candidate_titles(title)
