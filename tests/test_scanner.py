@@ -113,6 +113,8 @@ def test_ignore_key_treats_accent_forms_and_case_as_equal():
     pytest.param('Friends (1994) Season 1-10 S01-S10 (1080p BluRay x265 HEVC 10bit AAC 5.1 Silence)', False, id='complete-pack-range'),
     pytest.param('Sabrina.The.Teenage.Witch.S01-S07.DVDRip.XviD.Hun.Eng', False, id='season-token-range'),
     pytest.param('Modern Family Season 1-11 Complete 720p x264 [Pahe.in]', False, id='season-word-range'),
+    pytest.param('Silicon.Valley.Season.1.720p.BluRay.x265.ShAaNiG', True, id='season-word-with-dots'),
+    pytest.param('Black Mirror Series 6 Complete NF WEB-DL 720p', True, id='series-word'),
 ])
 def test_is_season_folder(name, expected):
     assert is_season_folder(name) is expected

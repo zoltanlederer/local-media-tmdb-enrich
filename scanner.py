@@ -27,15 +27,16 @@ def is_season_folder(name):
 
     # 1. A range ('S01-S10', 'Season 1-11') means a complete-series pack: that's the show itself.
     #    This check must come first, because the season checks below would match inside a range.
-    if re.search(r's\d{2}\s*-\s*s?\d{2}', text) or re.search(r'season\s*\d+\s*-\s*\d+', text):
+    if re.search(r's\d{2}\s*-\s*s?\d{2}', text) or re.search(r'(season|series)[\s._]*\d+\s*-\s*\d+', text):
         return False
 
     # 2. Language folders inside a show: 'Magyar', '!Angol', 'Hungarian'
     if text.lstrip('!') in LANGUAGE_FOLDERS:
         return True
 
-    # 3. A season word followed by a number: 'Season 1', 'Évad 7', 'Scrubs Season 2', 'Volume 03'
-    if re.search(r'\b(season|évad|volume)\s*\d+', text):
+    # 3. A season word followed by a number: 'Season 1', 'Évad 7', 'Scrubs Season 2', 'Volume 03',
+    #    also with dots or underscores in between ('Silicon.Valley.Season.1') and the British 'Series 6'
+    if re.search(r'\b(season|series|évad|volume)[\s._]*\d+', text):
         return True
 
     # 4. A number followed by 'évad': 'Dallas 08. évad'
