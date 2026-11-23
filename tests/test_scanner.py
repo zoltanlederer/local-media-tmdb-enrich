@@ -1,6 +1,6 @@
 import pytest
 import scanner
-from scanner import clean_folder_name, candidate_titles, has_hungarian_letters, get_movie_folders, get_tv_folders, ignore_key, is_season_folder
+from scanner import clean_folder_name, candidate_titles, has_hungarian_letters, get_video_folders, get_tv_folders, ignore_key, is_season_folder
 
 
 @pytest.mark.parametrize('folder_name, expected_title, expected_year', [
@@ -68,7 +68,7 @@ def make_file(path):
     path.touch()
 
 
-def test_get_movie_folders(tmp_path, monkeypatch):
+def test_get_video_folders(tmp_path, monkeypatch):
     monkeypatch.setattr(scanner, 'IGNORED_FOLDERS', ['Sample', 'Collection/Angol'])
 
     make_file(tmp_path / 'Collection' / 'Movie A' / 'movie.mkv')
@@ -78,7 +78,7 @@ def test_get_movie_folders(tmp_path, monkeypatch):
     make_file(tmp_path / 'Collection' / 'Angol' / 'Movie C' / 'movie.mkv')
     make_file(tmp_path / 'Covers' / 'front.jpg')
 
-    result = get_movie_folders(tmp_path)
+    result = get_video_folders(tmp_path)
 
     assert sorted(folder.name for folder in result) == ['Movie A', 'Movie B']
 

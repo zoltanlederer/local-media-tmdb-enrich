@@ -50,7 +50,7 @@ def is_season_folder(name):
     return False
 
 
-def get_movie_folders(root_folder):
+def get_video_folders(root_folder):
     """Return every folder that directly contains a video file, skipping ignored folders and files."""
     ignored = {ignore_key(name) for name in IGNORED_FOLDERS}
     folders = []
@@ -86,7 +86,7 @@ def get_tv_folders(root_folder):
     root = Path(root_folder)
     shows = set()
 
-    for folder in get_movie_folders(root_folder):
+    for folder in get_video_folders(root_folder):
         # Walk up while the folder is a season, episode or language folder,
         # e.g. 'Jim Szerint A Világ/Évad 7' → 'Jim Szerint A Világ'.
         # 'show != root' stops the walk at the top, so it never climbs out of the TV library.

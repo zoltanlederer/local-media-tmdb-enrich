@@ -7,7 +7,7 @@ enriches every title with full TMDB metadata, and writes it to a JSON or CSV fil
 import argparse
 from pathlib import Path
 from config import TMDB_READ_TOKEN
-from scanner import get_movie_folders, get_tv_folders
+from scanner import get_video_folders, get_tv_folders
 from tmdb import check_token
 from output import write_json, write_unmatched, write_csv
 from manual_matches import load_manual_matches, add_unmatched, MANUAL_MATCHES_FILE
@@ -65,7 +65,7 @@ def main():
 
     if movies:
         print('Finding movie folders...')
-        movie_folders = get_movie_folders(movies)
+        movie_folders = get_video_folders(movies)
         print(f"Movie folders: {len(movie_folders)}")
         movie_matched, movie_unmatched = match_folders(movie_folders, 'movie', manual_matches)
 
