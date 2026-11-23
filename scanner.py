@@ -21,9 +21,6 @@ def ignore_key(text):
     return unicodedata.normalize('NFC', text).lower()
 
 
-LANGUAGE_FOLDERS = {'magyar', 'angol', 'hungarian', 'english'}
-
-
 def is_season_folder(name):
     """Return True if the folder name looks like a season, episode or language folder inside a show."""
     text = ignore_key(name)   # lowercase + NFC, so 'Évad' matches however macOS stored the accent
@@ -83,23 +80,24 @@ def get_movie_folders(root_folder):
     return folders
 
 
-def get_folders(root_folder):
-    """
-    Walk through all subfolders recursively, skip anything in the
-    IGNORED_FOLDERS list and season folders detected via regex,
-    and return a list of folder paths to process.
-    """
-    folders = []
-    ignored = {name.lower() for name in IGNORED_FOLDERS}
-    for folder in Path(root_folder).rglob('*'):
-        # Season folders (e.g. "Season 01", "Season 01 (2010–11)", "S01") are filtered here via regex, not in IGNORED_FOLDERS
-        if (folder.is_dir() 
-            and folder.name.lower() not in ignored
-            and not re.match(r'^Season\s*\d*', folder.name, re.IGNORECASE)
-            and not re.match(r'^S\d{2}$', folder.name, re.IGNORECASE)):
-            folders.append(folder)
+def get_tv_folders(root_folder):
+    """Return one folder per TV show: video folders walked up past season, episode and language folders."""
+    root = Path(root_folder)
+    shows = set()
 
-    return folders
+    for folder in get_movie_folders(root_folder):
+        # Walk up while the folder is a season, episode or language folder,
+        # e.g. 'Jim Szerint A Világ/Évad 7' → 'Jim Szerint A Világ'.
+        # 'show != root' stops the walk at the top, so it never climbs out of the TV library.
+        show = folder
+        while is_season_folder(show.name) and show != root:
+            show = show.parent
+
+        # The root itself is never a show (loose videos, or a season folder right under the root)
+        if show != root:
+            shows.add(show)   # a set: ten seasons of one show give one entry
+
+    return sorted(shows)   # same order every run
 
 
 def clean_folder_name(folder_name):

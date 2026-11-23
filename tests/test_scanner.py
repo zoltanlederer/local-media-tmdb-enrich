@@ -1,6 +1,6 @@
 import pytest
 import scanner
-from scanner import clean_folder_name, candidate_titles, has_hungarian_letters, get_movie_folders, ignore_key, is_season_folder
+from scanner import clean_folder_name, candidate_titles, has_hungarian_letters, get_movie_folders, get_tv_folders, ignore_key, is_season_folder
 
 
 @pytest.mark.parametrize('folder_name, expected_title, expected_year', [
@@ -116,3 +116,42 @@ def test_ignore_key_treats_accent_forms_and_case_as_equal():
 ])
 def test_is_season_folder(name, expected):
     assert is_season_folder(name) is expected
+
+
+def test_get_tv_folders(tmp_path, monkeypatch):
+    monkeypatch.setattr(scanner, 'IGNORED_FOLDERS', [])   # don't depend on the real config.py
+
+    # a show with Hungarian season folders: two seasons, but only one show
+    make_file(tmp_path / '!Alap' / 'Jim' / 'Évad 7' / 'e.mkv')
+    make_file(tmp_path / '!Alap' / 'Jim' / 'Évad 8' / 'e.mkv')
+    # episode folders inside season folders: two levels to walk up
+    make_file(tmp_path / '8 Simple Rules' / '8.Simple.Rules.S01.DVDRip' / '8.Simple.Rules.S01.E02.DVDRip' / 'e.avi')
+    # a language folder inside a season folder
+    make_file(tmp_path / 'HIMYM' / 'Season 3 (2007–08)' / 'Hungarian' / 'e.mkv')
+    # a complete-series pack: the walk stops at the range
+    make_file(tmp_path / 'Friends Season 1-10 S01-S10' / 'Season 1' / 'e.mkv')
+    # episodes directly in the show folder: nothing to walk
+    make_file(tmp_path / 'Show X' / 'e.mkv')
+    # a season folder right under the root, and a loose video: neither is a show
+    make_file(tmp_path / 'Season 1' / 'e.mkv')
+    make_file(tmp_path / 'loose.mkv')
+
+    result = get_tv_folders(tmp_path)
+
+    assert sorted(folder.name for folder in result) == [
+        '8 Simple Rules',
+        'Friends Season 1-10 S01-S10',
+        'HIMYM',
+        'Jim',
+        'Show X',
+    ]
+
+
+def test_get_tv_folders_never_walks_out_of_the_root(tmp_path, monkeypatch):
+    monkeypatch.setattr(scanner, 'IGNORED_FOLDERS', [])
+    root = tmp_path / 'Hungarian'   # a TV library whose own name looks like a language folder
+    make_file(root / 'Season 1' / 'e.mkv')
+
+    result = get_tv_folders(root)
+
+    assert result == []

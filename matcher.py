@@ -10,7 +10,7 @@ import unicodedata
 import time
 import re
 from tmdb import search_tmdb, fetch_details, fetch_seasons, check_token
-from scanner import get_folders, clean_folder_name, candidate_titles
+from scanner import clean_folder_name, candidate_titles
 
 
 
