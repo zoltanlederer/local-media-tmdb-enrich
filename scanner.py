@@ -13,11 +13,43 @@ from config import IGNORED_FOLDERS
 
 
 VIDEO_EXTENSIONS = {'.mkv', '.mp4', '.avi', '.m4v', '.iso'}
+LANGUAGE_FOLDERS = {'magyar', 'angol', 'hungarian', 'english'}
 
 
 def ignore_key(text):
     """Return the text in the form used for ignore-list comparisons: NFC-normalized and lowercase."""
     return unicodedata.normalize('NFC', text).lower()
+
+
+LANGUAGE_FOLDERS = {'magyar', 'angol', 'hungarian', 'english'}
+
+
+def is_season_folder(name):
+    """Return True if the folder name looks like a season, episode or language folder inside a show."""
+    text = ignore_key(name)   # lowercase + NFC, so 'Évad' matches however macOS stored the accent
+
+    # 1. A range ('S01-S10', 'Season 1-11') means a complete-series pack: that's the show itself.
+    #    This check must come first, because the season checks below would match inside a range.
+    if re.search(r's\d{2}\s*-\s*s?\d{2}', text) or re.search(r'season\s*\d+\s*-\s*\d+', text):
+        return False
+
+    # 2. Language folders inside a show: 'Magyar', '!Angol', 'Hungarian'
+    if text.lstrip('!') in LANGUAGE_FOLDERS:
+        return True
+
+    # 3. A season word followed by a number: 'Season 1', 'Évad 7', 'Scrubs Season 2', 'Volume 03'
+    if re.search(r'\b(season|évad|volume)\s*\d+', text):
+        return True
+
+    # 4. A number followed by 'évad': 'Dallas 08. évad'
+    if re.search(r'\b\d+\.?\s*évad\b', text):
+        return True
+
+    # 5. A season token, optionally with an episode: 'S10', 'S02E17', 'S01.E02'
+    if re.search(r'\bs\d{2}(\.?e\d{2})?\b', text):
+        return True
+
+    return False
 
 
 def get_movie_folders(root_folder):

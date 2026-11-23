@@ -1,6 +1,6 @@
 import pytest
 import scanner
-from scanner import clean_folder_name, candidate_titles, has_hungarian_letters, get_movie_folders, ignore_key
+from scanner import clean_folder_name, candidate_titles, has_hungarian_letters, get_movie_folders, ignore_key, is_season_folder
 
 
 @pytest.mark.parametrize('folder_name, expected_title, expected_year', [
@@ -89,3 +89,30 @@ def test_ignore_key_treats_accent_forms_and_case_as_equal():
 
     assert ignore_key(composed) == ignore_key(decomposed)
     assert ignore_key('SAMPLE') == ignore_key('sample')
+
+
+@pytest.mark.parametrize('name, expected', [
+    # season folders
+    pytest.param('Season 1', True, id='season-word'),
+    pytest.param('Season 3 (2007-08)', True, id='season-word-with-years'),
+    pytest.param('Évad 7', True, id='evad-word'),
+    pytest.param('Dallas 08. évad', True, id='number-then-evad'),
+    pytest.param('Scrubs Season 2  [720p AI x265 10bit Joy]', True, id='show-name-then-season-word'),
+    pytest.param('South.Park.S10.Dual', True, id='season-token'),
+    pytest.param('Frasier S07 (360p re-dvdrip)', True, id='season-token-with-spaces'),
+    pytest.param('Volume 03 - The Years of Change', True, id='volume-word'),
+    # episode folders
+    pytest.param('Angel.S02E17.DVDRip.HUN.ENG.XviD-HT', True, id='episode-token'),
+    pytest.param('8.Simple.Rules.S01.E02.DVDRip.XviD.Dual-VHS', True, id='episode-token-with-dot'),
+    # language folders
+    pytest.param('Hungarian', True, id='language-english-word'),
+    pytest.param('!Angol', True, id='language-with-exclamation'),
+    # show folders: not seasons
+    pytest.param('How I Met Your Mother', False, id='plain-show'),
+    pytest.param('Star Wars - The Clone Wars (2008-2020)', False, id='show-with-years'),
+    pytest.param('Friends (1994) Season 1-10 S01-S10 (1080p BluRay x265 HEVC 10bit AAC 5.1 Silence)', False, id='complete-pack-range'),
+    pytest.param('Sabrina.The.Teenage.Witch.S01-S07.DVDRip.XviD.Hun.Eng', False, id='season-token-range'),
+    pytest.param('Modern Family Season 1-11 Complete 720p x264 [Pahe.in]', False, id='season-word-range'),
+])
+def test_is_season_folder(name, expected):
+    assert is_season_folder(name) is expected
